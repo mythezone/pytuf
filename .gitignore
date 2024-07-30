@@ -112,7 +112,7 @@ ipython_config.py
 .pdm.toml
 .pdm-python
 .pdm-build/
-
+.vscode/
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
@@ -124,6 +124,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+*.exe
 .env
 .venv
 env/
