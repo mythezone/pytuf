@@ -1,0 +1,9 @@
+2024-07-31 00:38:54,321 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\404379_3xplanet_T-38003-landscape.jpg, Size: 0.23 MB
+2024-07-31 00:38:54,368 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\404379_3xplanet_T-38003-poster.jpg, Size: 0.11 MB
+2024-07-31 00:38:54,474 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\STSK-124\backdrop.jpg, Size: 0.27 MB
+2024-07-31 00:38:54,539 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\STSK-124\folder.jpg, Size: 0.11 MB
+2024-07-31 00:38:54,614 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\STSK-124\landscape.jpg, Size: 0.22 MB
+2024-07-31 00:38:54,684 - default - INFO - Deleted: \\10.16.51.226\media\16t\downloads\test\STSK-124\trailers\STSK-124-Trailer.strm, Size: 0.00 MB
+2024-07-31 00:38:54,708 - default - INFO - Deleted empty folder: \\10.16.51.226\media\16t\downloads\test\STSK-124\trailers
+2024-07-31 00:38:54,724 - default - INFO - Deleted empty folder: \\10.16.51.226\media\16t\downloads\test\110AKDL-243
+2024-07-31 00:38:54,827 - default - INFO - Moved: \\10.16.51.226\media\16t\downloads\test\STSK-124\hhd800.com@STSK-124.mp4 to \\10.16.51.226\media\16t\Adult_tmp\S\STS\STSK-124\STSK-124.mp4
