@@ -82,8 +82,11 @@ def get_url_by_code(code):
     header1 = {
         "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
-
-    response = requests.get(url, headers=header1)
+    try:
+        response = requests.get(url, headers=header1)
+    except Exception as e:
+        print(e)
+        return None 
     
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     
