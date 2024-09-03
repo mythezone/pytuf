@@ -46,7 +46,7 @@ def delete_empty_folders(folder_path):
 
 def move_large_videos(source_folder, target_folder, min_size_gb=1):
     min_size_bytes = min_size_gb * 1024 * 1024 * 1024  # 将GB转换为字节
-    pattern = re.compile(r'\b[a-zA-Z]{3,4}-\d{3,4}\b')
+    pattern = re.compile(r'[a-zA-Z]{2,5}-\d{3,5}')
 
     for root, dirs, files in os.walk(source_folder):
         for file in files:
@@ -89,8 +89,9 @@ def clean_download_folder(source_folder,target_folder):
     
 
 if __name__ == "__main__":
-    clean_download_folder(r"\\10.16.51.226\media\16t\downloads",r"\\10.16.51.226\media\16t\Adult_tmp")
-    source_folder = r"\\10.16.51.226\media\16t\downloads"
+    clean_download_folder("/disk/D/Unclassified","/disk/D/Adult")
+    # clean_download_folder(r"\\10.16.51.226\media\16t\downloads",r"\\10.16.51.226\media\16t\Adult_tmp")
+    # source_folder = r"\\10.16.51.226\media\16t\downloads"
     # delete_small_files(source_folder)
     
     # delete_empty_folders(source_folder)
