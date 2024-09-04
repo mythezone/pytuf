@@ -38,6 +38,8 @@ def process_json(file_path):
                 response = requests.get(video_url,headers=header)
                 with open(video_file,"wb") as f:
                     f.write(response.content)
+                    
+    
     if j.get("cover",None) is None:
         cover_url = j["cover"]
         cover_file = os.path.join(folder,"cover.jpg")
@@ -47,7 +49,9 @@ def process_json(file_path):
             response = requests.get(cover_url,headers=header)
             with open(cover_file,"wb") as f:
                 f.write(response.content)
-        
+      
+      
+    if j.get("images",None) is not None:
         screenshot = j["images"]
         new_images = []
         for img_url in screenshot:
@@ -62,10 +66,9 @@ def process_json(file_path):
                 with open(img_file,"wb") as f:
                     f.write(response.content)
                 new_images.append(img_file)
-                
-    if j.get("images",None) :
         j["images"] = new_images
-                    
+                
+    if j.get("related",None) is not None:               
         related = j["related"]
         for idx,r in enumerate(related):
             r_file = os.path.join(folder,"related",os.path.basename(r["img"]))
