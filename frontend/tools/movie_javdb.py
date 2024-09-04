@@ -6,12 +6,21 @@ import os, sys , json
 import time 
 from tqdm import tqdm
 import random 
-from process_json import process_json
 
+import sys,os,json
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+    
+from frontend.tools.process_json import process_json
+
+from frontend.tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url  
 
 def multi_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):   
     start_time = time.time()
+    
     while True:
+            
         print("Start processing files in ", file_path)
         end_time = time.time()
         if end_time - start_time > 36000:
@@ -36,9 +45,16 @@ def multi_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
                         
         except Exception as e:
             print(e)
+            print("Error in processing files folder, retry after 200 seconds.")
             time.sleep(200)
             continue
-    
+
+def get_info_path_by_code(code, info_path=r"\\10.16.12.105\disk\G\Info"):
+    first_letter = code[0]
+    first_3_letters = code[:3]
+    folder = os.path.join(info_path,first_letter,first_3_letters,code)
+    os.makedirs(folder,exist_ok=True)
+    return folder
 
 
 def single_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
@@ -49,48 +65,47 @@ def single_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
     first_letter = file_name[0]
     first_3_letters = file_name[:3]
     folder = os.path.join(info_path,first_letter,first_3_letters,code)
+    if not os.path.exists(folder):
+        os.makedirs(folder,exist_ok=True)
+        
     json_file = os.path.join(folder,f"{code}.json")
     html_file = os.path.join(folder,f"javdb_{code}.html")
+    
     if os.path.exists(json_file):
         with open(json_file,'r',encoding="utf-8") as f:
             json_dict = json.load(f)
             if json_dict.get("processed",False):
                 return 0
-    
-    if not os.path.exists(folder):
-        os.makedirs(folder,exist_ok=True)
-    
-    url = get_url_by_code(code)
-    try:
-        json_dict = get_movie_json_by_url(url, html_file)
-        json_dict["video_path"] = file_path
-        
-        
-    except Exception as e:
-        print(e)
-        return 10
-    
-    with open(json_file,"w",encoding="utf-8") as f:
-        json.dump(json_dict,f,ensure_ascii=False,indent=4)
-        
-    if json_dict != {}:
+    else:
+        url = get_url_by_code(code)
         try:
-            process_json(json_file)
+            json_dict = get_movie_json_by_url(url, html_file)
+            json_dict["video_path"] = file_path
         except Exception as e:
+            print(f"cant get movie json by url:{url}")
             print(e)
             return 10
+    
+        with open(json_file,"w",encoding="utf-8") as f:
+            json.dump(json_dict,f,ensure_ascii=False,indent=4)
+    try:
+        process_json(file_path=json_file)
+    except Exception as e:
+        print(e)
+        print(f"Error in processing json file:{json_file}")
+        return 10
+    
     return random.randint(10,20)
         
 
 def get_url_by_code(code):
     url = f"https://javdb.com/search?q={code}"
-    header1 = {
-        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
+
     try:
-        response = requests.get(url, headers=header1)
+        response = get_response_by_url(url)
     except Exception as e:
         print(e)
+        print(f"Error in getting response from url:{url}")
         return None 
     
     soup = bs4.BeautifulSoup(response.text, "html.parser")
@@ -104,56 +119,81 @@ def get_url_by_code(code):
     # url = f"https://javdb.com{movie_href}"
     return movie_href
 
-def get_movie_json_by_url(href, html_file=None):
-    if href is None:
+def get_movie_json_by_url(href=None,url=None, html_file=True):
+    info = {
+            "id": href
+        }
+    if href is None and url is None:
         return {}
     
-    url = f"https://javdb.com{href}"
+    if href:
+        url = f"https://javdb.com{href}"
+        info["file_path"] = ""
+        
 
-    response = requests.get(url)
-
     
-    if html_file:
-        with open(html_file,"w",encoding="utf-8") as f:
-            f.write(response.text)
-    
-    soup = bs4.BeautifulSoup(response.text, "html.parser")
-    info = {
-        "id": href
-    }
-    
-    # with open("detail.html","r",encoding="utf-8") as f:
-    #     soup = bs4.BeautifulSoup(f.read(),"html.parser")
-    
+    if html_file is str and os.path.exists(html_file):
+        with open(html_file,"r",encoding="utf-8") as f:
+            soup = bs4.BeautifulSoup(f.read(),"html.parser")
+    else:
+        response = get_response_by_url(url)
+        
+        
+        soup = bs4.BeautifulSoup(response.text, "html.parser")
+        
     video_detail = soup.find("div",{"class":"video-detail"})
     
     if video_detail is not None:
+        
+        code = video_detail.find("strong").text.strip()
+        info["code"] = code
+        info["folder"] = get_info_path_by_code(code)
+        with open(os.path.join(info["folder"],"javdb_"+info["code"]+".html"),"w",encoding="utf-8") as f:
+            f.write(response.text)
+        
         info["current-title"]=video_detail.find("strong",{"class":"current-title"}).text
         try:
             info["origin-title"]=video_detail.find("span",{"class":"origin-title"}).text
         except Exception as e:
+            print(f"No origin title found:{info['code']}")
             info["origin-title"] = ""
-        code = video_detail.find("strong").text
-        info["code"] = code
     
     
     panel_info = soup.find("nav", {"class":"movie-panel-info"})
-    spans = panel_info.find_all("div",{"class":"panel-block"})
     panel={}
-    for span in spans:
-        try:
-            key = span.find("strong").text.strip()[:-1]
-            value =span.find("span", {"class":"value"})
-            aas = value.find_all("a")
-            if aas:
-                res = {}
-                res["href"] = [a["href"] for a in aas]
-                res["text"] = [a.text for a in aas]
-                panel[key] = list(zip(res["text"], res["href"]))
-            else:
-                panel[key] = value.text.strip()
-        except Exception as e:
-            pass 
+    try:
+        spans = panel_info.find_all("div",{"class":"panel-block"})
+        
+        for span in spans:
+        
+            try:
+                key_span = span.find("strong")
+                if key_span is None:
+                    continue 
+                else:
+                    key = key_span.text.strip()[:-1]
+                value =span.find("span", {"class":"value"})
+                if value is None:
+                    continue
+                aas = value.find_all("a")
+                if aas:
+                    res = []
+                    for a in aas:
+                        if a is None: 
+                            continue
+                        if getattr(a,"text", None):
+                            href = a["href"] 
+                            t = a.text
+                            res.append([t,href])
+                    panel[key] = res
+                else:
+                    panel[key] = value.text.strip()
+            except Exception as e:
+                print(f"Error in parsing panel info:{info['code']}")
+                print(e)
+                continue
+    except Exception as e:
+        print(f"No panel info found:{info['code']}")
         
     info["meta"] = panel
     
@@ -180,6 +220,7 @@ def get_movie_json_by_url(href, html_file=None):
     try:
         cover_src = soup.find("img",{"class":"video-cover"})["src"]
     except Exception as e:
+        print(f"No cover found:{info['code']}")
         cover_src = ""
     info["cover"] = cover_src
     
@@ -191,12 +232,22 @@ def get_movie_json_by_url(href, html_file=None):
     
     same_actors = soup.find_all("div",{"class":"tile-images tile-small"})
     if same_actors is not None:
-        relateds = same_actors[0].find_all("a",{"class":"tile-item"})
-        may_likes = same_actors[1].find_all("a",{"class":"tile-item"})
+        
+        if len(same_actors)>1:
+            relateds = same_actors[0].find_all("a",{"class":"tile-item"})
+            may_likes = same_actors[1].find_all("a",{"class":"tile-item"})
+        else:
+            may_likes = same_actors[0].find_all("a",{"class":"tile-item"})
+            relateds = None 
         if relateds is not None:
             relateds_res = [parse_relateds(x) for x in relateds]
+        else:
+            relateds_res = []
+            
         if may_likes is not None:
-            may_likes_res = [parse_relateds(x) for x in may_likes]
+                may_likes_res = [parse_relateds(x) for x in may_likes]
+        else:
+            may_likes_res = []
     
         info['related'] = relateds_res
         info['may_like'] = may_likes_res
@@ -254,7 +305,7 @@ def download_image(image_url, file_path):
     return file_path
     
 if __name__ == "__main__":
-    multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
+    # multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")

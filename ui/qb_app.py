@@ -17,6 +17,9 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from frontend.tools.movie_javdb import get_movie_json_by_url
+from frontend.tools.process_json import process_json
+
 from utils.logger import setup_logger
 from utils.config import ConfigManager
 from movie.qbdown import QBTorrentDownloader
@@ -28,6 +31,7 @@ import time
 import threading
 import configparser
 from datetime import datetime
+
 
 
 class TorrentDownloaderApp(tk.Tk):
@@ -74,6 +78,10 @@ class TorrentDownloaderApp(tk.Tk):
         self.qb_downloader = QBTorrentDownloader(qb_url, username, password)
         if not self.qb_downloader.session:
             messagebox.showerror("Login Failed", "Could not log in to qBittorrent. Check your credentials.")
+            
+    def get_movie_info_by(self,url):
+        info = get_movie_json_by_url(url = url)
+        process_json(j = info)
 
     def monitor_clipboard(self):
         recent_value = ""
@@ -84,6 +92,12 @@ class TorrentDownloaderApp(tk.Tk):
                 if 'magnet:?' in clipboard_content or clipboard_content.endswith('.torrent'):
                     self.label.config(text=clipboard_content)
                     self.qb_downloader.download(clipboard_content,self.current_label)
+                elif "https://javdb.com/v/" in clipboard_content:
+                    self.label.config(text=clipboard_content)
+                    threading.Thread(target=self.get_movie_info_by, args=(clipboard_content,)).start()
+                    # info = get_movie_json_by_url(url = clipboard_content)
+                    
+                    # process_json(j = info)
             time.sleep(2)
             
     def view_downloads(self):
