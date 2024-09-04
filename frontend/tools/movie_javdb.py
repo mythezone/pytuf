@@ -49,8 +49,10 @@ def single_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
     json_file = os.path.join(folder,f"{code}.json")
     html_file = os.path.join(folder,f"javdb_{code}.html")
     if os.path.exists(json_file):
-        
-        return 0
+        with open(json_file,'r',encoding="utf-8") as f:
+            json_dict = json.load(f)
+            if json_dict.get("processed",False):
+                return 0
     
     if not os.path.exists(folder):
         os.makedirs(folder,exist_ok=True)
@@ -122,15 +124,14 @@ def get_movie_json_by_url(href, html_file=None):
     
     video_detail = soup.find("div",{"class":"video-detail"})
     
-    info["current-title"]=video_detail.find("strong",{"class":"current-title"}).text
-    try:
-        info["origin-title"]=video_detail.find("span",{"class":"origin-title"}).text
-    except Exception as e:
-        info["origin-title"] = ""
-        
-        
-    code = video_detail.find("strong").text
-    info["code"] = code
+    if video_detail is not None:
+        info["current-title"]=video_detail.find("strong",{"class":"current-title"}).text
+        try:
+            info["origin-title"]=video_detail.find("span",{"class":"origin-title"}).text
+        except Exception as e:
+            info["origin-title"] = ""
+        code = video_detail.find("strong").text
+        info["code"] = code
     
     
     panel_info = soup.find("nav", {"class":"movie-panel-info"})
@@ -156,19 +157,22 @@ def get_movie_json_by_url(href, html_file=None):
 
             
     video = soup.find("video",{"id":"preview-video"})
-    info['video_src'] = video.find("source")["src"]
+    if video is not None:
+        info['video_src'] = video.find("source")["src"]
     
     magnet_content = soup.find("div",{"id":"magnets-content"})
-    magnets = []
-    for magnet in magnet_content.find_all('div',{"class":"item"}):
-        href = magnet.find("a")["href"]
-        name = magnet.find("span",{"class":"name"}).text.strip()
-        meta = magnet.find("span",{"class":"meta"}).text.strip()
-        tags = [x.text.strip() for x in magnet.find_all("span",{"class":"tag"})]
-        time = magnet.find("span",{"class":"time"}).text.strip()
-        magnets.append({"href":href,"name":name,"meta":meta,"tags":tags,"time":time})
     
-    info["magnets"] = magnets
+    if magnet_content is not None:
+        magnets = []
+        for magnet in magnet_content.find_all('div',{"class":"item"}):
+            href = magnet.find("a")["href"]
+            name = magnet.find("span",{"class":"name"}).text.strip()
+            meta = magnet.find("span",{"class":"meta"}).text.strip()
+            tags = [x.text.strip() for x in magnet.find_all("span",{"class":"tag"})]
+            time = magnet.find("span",{"class":"time"}).text.strip()
+            magnets.append({"href":href,"name":name,"meta":meta,"tags":tags,"time":time})
+        
+        info["magnets"] = magnets
 
     try:
         cover_src = soup.find("img",{"class":"video-cover"})["src"]
@@ -183,14 +187,16 @@ def get_movie_json_by_url(href, html_file=None):
     info["images"] = image_src
     
     same_actors = soup.find_all("div",{"class":"tile-images tile-small"})
-    relateds = same_actors[0].find_all("a",{"class":"tile-item"})
-    may_likes = same_actors[1].find_all("a",{"class":"tile-item"})
+    if same_actors is not None:
+        relateds = same_actors[0].find_all("a",{"class":"tile-item"})
+        may_likes = same_actors[1].find_all("a",{"class":"tile-item"})
+        if relateds is not None:
+            relateds_res = [parse_relateds(x) for x in relateds]
+        if may_likes is not None:
+            may_likes_res = [parse_relateds(x) for x in may_likes]
     
-    relateds_res = [parse_relateds(x) for x in relateds]
-    may_likes_res = [parse_relateds(x) for x in may_likes]
-    
-    info['related'] = relateds_res
-    info['may_like'] = may_likes_res
+        info['related'] = relateds_res
+        info['may_like'] = may_likes_res
     
     return info
     
