@@ -23,6 +23,9 @@ def multi_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
                 files = [x for x in files if x.endswith(".mp4") or x.endswith(".mkv")]
                 count = 0
                 for file in files:
+                    if file[0] in ["0","1","2","3","4","5","6","7","8","9","F"]:
+                        continue
+                    
                     file_size = os.path.getsize(os.path.join(root,file))
                     if file_size > 500*1024*1024:
                         wait_time = single_pipeline(os.path.join(root,file),info_path)
