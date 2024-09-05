@@ -16,6 +16,7 @@ class Movie(models.Model):
     actors = models.ManyToManyField('person.People',  related_name='actors')
     tags = models.ManyToManyField('person.People',  related_name='tags')
     
+    
     rating = models.FloatField(default=0)
     parsed = models.BooleanField(default=False)
     favorite = models.BooleanField(default=False)
