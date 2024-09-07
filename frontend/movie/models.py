@@ -5,8 +5,8 @@ import datetime
 class Movie(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     code = models.CharField(max_length=255,null=True,default="")
-    current_title = models.CharField(max_length=255,null=True)
-    origin_title = models.CharField(max_length=255,null=True)
+    current_title = models.CharField(max_length=500,default="",null=True)
+    origin_title = models.CharField(max_length=500,default="",null=True)
     release_date = models.DateField(default=datetime.date.today)
     duration = models.IntegerField(default=120)
     rate = models.FloatField(default=0)
@@ -29,6 +29,8 @@ class Movie(models.Model):
     
     related = models.ManyToManyField("self", related_name="related_movies")
     may_like = models.ManyToManyField("self", related_name="may_like_movies")
+    
+    in_database = models.BooleanField(default=False)
     
     def __str__(self):
         return self.code + " : " +self.current_title

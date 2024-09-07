@@ -17,36 +17,30 @@ from frontend.tools.process_json import process_json
 from frontend.tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url  
 
 def multi_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"): 
-    start_time = time.time()
     
-    while True:
-        print("Start processing files in ", file_path)
-        end_time = time.time()
-        if end_time - start_time > 36000:
-            break
-        try:
-            wait_time = 0 
-            for root, dirs, files in os.walk(file_path): 
-                print("Start processing files in ", root)
-                files = [x for x in files if x.endswith(".mp4") or x.endswith(".mkv")]
+    try:
+        wait_time = 0 
+        for root, dirs, files in os.walk(file_path): 
+            print("Start processing files in ", root)
+            files = [x for x in files if x.endswith(".mp4") or x.endswith(".mkv")]
 
-                for file in files:
-                    print("File:",file)
-                    if file[0] in ["0","1","2","3","4","5","6","7","8","9","F","P"]:
-                        continue
+            for file in files:
+                print("File:",file)
+                if file[0] in ["0","1","2","3","4","5","6","7","8","9","F","P"]:
+                    continue
+                
+                file_size = os.path.getsize(os.path.join(root,file))
+                if file_size > 500*1024*1024:
+                    wait_time = single_pipeline(os.path.join(root,file),info_path)
+
+                if wait_time!= 0:
+                    time.sleep(wait_time)
                     
-                    file_size = os.path.getsize(os.path.join(root,file))
-                    if file_size > 500*1024*1024:
-                        wait_time = single_pipeline(os.path.join(root,file),info_path)
+    except Exception as e:
+        print(e)
+        print("Error in processing files folder, retry after 200 seconds.")
+        time.sleep(200)
 
-                    if wait_time!= 0:
-                        time.sleep(wait_time)
-                        
-        except Exception as e:
-            print(e)
-            print("Error in processing files folder, retry after 200 seconds.")
-            time.sleep(200)
-            continue
 
 def get_info_path_by_code(code, info_path=r"\\10.16.12.105\disk\G\Info"):
     
@@ -303,8 +297,8 @@ def parse_relateds(related):
 
 if __name__ == "__main__":
     # multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
-    multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
-    multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
-    multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")
+    # multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
+    # multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
+    # multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\4t2\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\16t\Adult")

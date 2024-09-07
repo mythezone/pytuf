@@ -19,7 +19,7 @@ if project_root not in sys.path:
 
 from frontend.tools.movie_javdb import get_movie_json_by_url
 from frontend.tools.process_json import process_json
-
+# from frontend.movie.parser import parse_json
 from utils.logger import setup_logger
 from utils.config import ConfigManager
 from movie.qbdown import QBTorrentDownloader
@@ -82,6 +82,7 @@ class TorrentDownloaderApp(tk.Tk):
     def get_movie_info_by(self,url):
         info = get_movie_json_by_url(url = url)
         process_json(j = info)
+        # parse_json(j=info)
 
     def monitor_clipboard(self):
         recent_value = ""
