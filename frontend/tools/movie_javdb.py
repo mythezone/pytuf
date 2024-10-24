@@ -16,22 +16,48 @@ from frontend.tools.process_json import process_json
 
 from frontend.tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url  
 
+def parser_file_name(file_name):
+    base_name, ext = os.path.splitext(file_name)
+    
+    
+    if "@" in base_name:
+        base_name = base_name.split("@")[1]
+    
+    new_name = base_name + ext
+        
+    bb = base_name.split("-")
+    
+    if len(bb)>2:
+        title = "-".join(bb[:2])
+        new_name = f"{title}{ext}"
+        
+    return new_name
+
+    
+
 def multi_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"): 
     
     try:
         wait_time = 0 
         for root, dirs, files in os.walk(file_path): 
-            print("Start processing files in ", root)
+            # print("Start processing files in ", root)
             files = [x for x in files if x.endswith(".mp4") or x.endswith(".mkv")]
 
             for file in files:
-                print("File:",file)
-                if file[0] in ["0","1","2","3","4","5","6","7","8","9","F","P"]:
+                # print("File:",file)
+                if "FC" in file:
                     continue
                 
                 file_size = os.path.getsize(os.path.join(root,file))
                 if file_size > 500*1024*1024:
-                    wait_time = single_pipeline(os.path.join(root,file),info_path)
+                    new_file_name = parser_file_name(file)
+                    
+                    if os.path.exists(os.path.join(root,new_file_name)):
+                        print(f"File {new_file_name} already exists.")
+                        continue
+                    
+                    os.rename(os.path.join(root,file),os.path.join(root,new_file_name))
+                    wait_time = single_pipeline(os.path.join(root,new_file_name),info_path)
 
                 if wait_time!= 0:
                     time.sleep(wait_time)
@@ -53,6 +79,7 @@ def get_info_path_by_code(code, info_path=r"\\10.16.12.105\disk\G\Info"):
 
 def single_pipeline(file_path, info_path=r"\\10.16.12.105\disk\G\Info"):
     file_name = os.path.basename(file_path)
+    print("Start processing file:",file_name)
     
     code = file_name.split(".")[0]
     
@@ -296,9 +323,9 @@ def parse_relateds(related):
         
 
 if __name__ == "__main__":
-    # multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
-    # multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
-    # multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
-    # multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")
+    multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
+    multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
+    multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
+    multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\4t2\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\16t\Adult")
