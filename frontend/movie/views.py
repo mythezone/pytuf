@@ -1,10 +1,19 @@
 from django.shortcuts import render
 from .models import Movie, Magnet
+from django.core.paginator import Paginator
+
 
 # Create your views here.
 def index(request):
+    all_movies = Movie.objects.exclude(video_path="").order_by('-id')
+    print("all movie num:", len(all_movies))
+    paginator = Paginator(all_movies, 12)
+    page_num = request.GET.get('page', 1)
     
-    return render(request, 'index.html')
+    page_obj = paginator.get_page(page_num)
+
+
+    return render(request, 'index.html', {"page_obj": page_obj})
 
 def detail(request, movie_id):
     

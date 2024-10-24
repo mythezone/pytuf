@@ -21,4 +21,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("movie/", include("movie.urls")),
     path("group/", include("person.urls")),
+    path("__reload__/", include("django_browser_reload.urls")),
 ]
