@@ -1,11 +1,211 @@
+{% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>列表首页</title>
-</head>
-<body>
-    列表
-</body>
+	<head>
+    <title>Django Tailwind</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		{% tailwind_css %}
+        <style>
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgb(0,0,0);
+                background-color: rgba(0,0,0,0.4);
+                padding-top: 60px;
+            }
+            .modal-content {
+                background-color: #fefefe;
+                margin: 5% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+            }
+            .close {
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+            }
+            .close:hover,
+            .close:focus {
+                color: black;
+                text-decoration: none;
+                cursor: pointer;
+            }
+        </style>
+	</head>
+
+    <body class="bg-gray-100 p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Movies</h1>
+        <div class="container mx-auto">
+            <div class="flex flex-wrap -mx-4">
+                {% for movie in page_obj %}
+                <div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-4 mb-8">
+                    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                        <img class="w-full h-48 object-cover" src="{{ movie.cover }}" alt="Movie Cover">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800">{{ movie.current_title }}</h2>
+                            {% comment %} <p class="text-gray-600">{{ movie.origin_title }}</p> {% endcomment %}
+                            <p class="text-gray-600">发布日期: {{ movie.release_date }}</p>
+                            <p class="text-gray-600">时长: {{ movie.duration }} 分钟</p>
+                            <p class="text-gray-600">评分: {{ movie.rate }} ({{ movie.rater }} raters)</p>
+                            {% if movie.publisher.name %}
+                            <p class="text-gray-600">发行商: {{ movie.publisher.name }}</p>
+                            {% endif %}
+                            {% if movie.director.name %}
+                            <p class="text-gray-600">导演: {{ movie.director.name }}</p>
+                            {% endif %}
+                            {% if movie.series.name %}
+                            <p class="text-gray-600">系列: {{ movie.series.name }}</p>
+                            {% endif %}
+                            {% if movie.maker.name %}
+                            <p class="text-gray-600">制片商: {{ movie.maker.name }}</p>
+                            {% endif %}
+                            <div class="mt-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Tags:</h3>
+                                <div class="flex flex-wrap">
+                                    {% for tag in movie.tags.all %}
+                                    <span class="bg-gray-200 text-gray-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded">{{ tag.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Actors:</h3>
+                                <div class="flex flex-wrap">
+                                    {% for actor in movie.actors.all %}
+                                    <span class="bg-gray-200 text-gray-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded">{{ actor.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <!-- 添加预览和删除按钮 -->
+                            <div class="mt-4 flex justify-between">
+                                {% if movie.video_src %}
+                                <button onclick="openPrevModal('{{ movie.video_src }}')" class="bg-blue-500 text-white px-4 py-2 rounded">预览</button>
+                                {% endif %}
+                                <button onclick="markAsDeleted('{{ movie.id }}')" class="bg-red-500 text-white px-4 py-2 rounded">删除</button>
+                                {% if movie.video_path %}
+                                <button onclick="openInNewWindow('{{ movie.video_path|escapejs }}')" class="bg-blue-500 text-white px-4 py-2 rounded">播放</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- 分页组件 -->
+                <div class="mt-8 flex justify-center">
+                    <nav class="inline-flex items-center space-x-1">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700">&laquo; First</a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">Previous</a>
+                        {% endif %}
+
+                        <span class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">Next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700">Last &raquo;</a>
+                        {% endif %}
+                    </nav>
+                </div>
+
+    <!-- 预览视频的浮窗 -->
+    <div id="prevModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePrevModal()">&times;</span>
+            <video id="videoPlayer" width="100%" controls>
+                <source id="videoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+        <!-- 预览视频的浮窗 -->
+    <div id="playModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePlayModal()">&times;</span>
+            <video id="videoPlayer" width="100%" controls>
+                <source id="videoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        function openPrevModal(videoSrc) {
+            document.getElementById('videoSource').src = videoSrc;
+            document.getElementById('videoPlayer').load();
+            document.getElementById('prevModal').style.display = "block";
+        }
+
+        function closePrevModal() {
+            document.getElementById('prevModal').style.display = "none";
+            document.getElementById('videoPlayer').pause();
+        }
+
+        function markAsDeleted(movieId) {
+            fetch(`/mark_as_deleted/${movieId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ 'id': movieId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Movie marked as deleted.');
+                    location.reload();
+                } else {
+                    alert('Failed to mark movie as deleted.');
+                }
+            });
+        }
+
+        // Close the modal when the user clicks anywhere outside of the modal
+        window.onclick = function(event) {
+            var modal = document.getElementById('myModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+                document.getElementById('videoPlayer').pause();
+            }
+        }
+        function openPlayModal(videoSrc) {
+            var decodedSrc = decodeURIComponent(videoSrc);
+            document.getElementById('videoSource').src = decodedSrc;
+            document.getElementById('videoPlayer').load();
+            document.getElementById('playModal').style.display = "block";
+        }
+        
+        function closePlayModal() {
+            document.getElementById('playModal').style.display = "none";
+            document.getElementById('videoPlayer').pause();
+        }
+        
+        // Close the modal when the user clicks anywhere outside of the modal
+        window.onclick = function(event) {
+            var modal = document.getElementById('playModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+                document.getElementById('videoPlayer').pause();
+            }
+        }
+        function openInNewWindow(videoPath) {
+            var decodedPath = decodeURIComponent(videoPath);
+            window.open(decodedPath, '_blank');
+        }
+    </script>
+    </body>
 </html>
+

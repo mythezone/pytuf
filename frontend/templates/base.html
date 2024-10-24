@@ -1,0 +1,27 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}{{ page_title }}{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    {% tailwind_css %}
+    <link rel="stylesheet" href="{% static 'css/mystyle.css' %}">
+    <script src="{% static 'js/myscript.js' %}"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    {% block header %}
+    {% endblock %}
+    
+    <main class="container mx-auto">
+        {% block content %}
+        <!-- 子模板的内容将被插入到这里 -->
+        {% endblock %}
+    </main>
+    <!-- 提示组件 -->
+    {% comment %} {% include 'components/alert.html' %} {% endcomment %}
+    <!-- 预览视频的浮窗 -->
+    {% include 'components/prev_window.html' %}
+</body>
+</html>

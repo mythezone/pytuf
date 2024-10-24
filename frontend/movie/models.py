@@ -10,9 +10,12 @@ class Movie(models.Model):
     release_date = models.DateField(default=datetime.date.today)
     duration = models.IntegerField(default=120)
     rate = models.FloatField(default=0)
+    my_rate = models.FloatField(default=0)
     rater = models.IntegerField(default=0)
     video_src =  models.CharField(max_length=500,default="")
     cover = models.CharField(max_length=500,default="")
+    status = models.IntegerField(default=0) # 默认为0， 已删除为-1 
+    comment = models.CharField(max_length=500,default="")
     
     video_path = models.CharField(max_length=500, default="")
     processed = models.BooleanField(default=False)
