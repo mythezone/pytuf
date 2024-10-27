@@ -6,22 +6,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     {% tailwind_css %}
     <link rel="stylesheet" href="{% static 'css/mystyle.css' %}">
     <script src="{% static 'js/myscript.js' %}"></script>
-</head>
-<body class="bg-gray-100 p-6">
-    {% block header %}
-    {% endblock %}
+    <script src="{% static 'fontawesomefree/js/all.min.js' %}"></script>
     
-    <main class="container mx-auto">
+</head>
+<body>
+    <div class="container mx-auto h-5 sticky top-0">
+        <header class="flex justify-between items-center py-4 bg-blue-900 ">
+        <div class="flex-shrink-0 ml-6 cursor-pointer">
+        <i class="fas fa-film fa-3x text-yellow-500"></i>
+        <span class="text-3xl font-semibold text-blue-200">Mythe Movie</span>
+        </div>
+        <ul class="flex mr-10 font-semibold text-gray-900">
+        <li class="mr-6 p-1 border-b-2 border-yellow-500">
+        <a class="cursor-default text-blue-200" href="/movie/?page=1">Home</a>
+        </li>
+        <li class="mr-6 p-1">
+        <a class="text-white hover:text-blue-300" href="/movie/random/">Lucky</a>
+        </li>
+        <li class="mr-6 p-1">
+        <a class="text-white hover:text-blue-300" href="/movie/top/?num=100">M-TOP</a>
+        </li>
+        <li class="mr-6 p-1">
+        <a class="text-white hover:text-blue-300" href="/movie/ctop/?num=100">C-TOP</a>
+            </li>
+        <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="/movie/recent/?num=100">Recent</a>
+                </li>
+        </ul>
+        </header>
+    </div>
+
+    <div class="container mx-auto pt-20 bg-blue-100">
+        {% block header %}
+        {% endblock %}
+    
+    <main class="container mx-auto px-2">
         {% block content %}
         <!-- 子模板的内容将被插入到这里 -->
         {% endblock %}
     </main>
     <!-- 提示组件 -->
-    {% comment %} {% include 'components/alert.html' %} {% endcomment %}
+    <div id="messageContainer" class="fixed top-0 left-0 right-0 flex justify-center mt-4"></div>
     <!-- 预览视频的浮窗 -->
     {% include 'components/prev_window.html' %}
+    </div>
+
+    <!-- 磁链浮窗 -->
+    <div id="magnetModal" class="modal">
+        <div class="modal-content ">
+            <span class="close" onclick="closeMagnetModal()">&times;</span>
+            <ul id="magnetList" class="list-disc list-inside">
+
+            </ul>
+        </div>
+    </div>
+    
+
 </body>
 </html>

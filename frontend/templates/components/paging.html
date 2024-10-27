@@ -1,6 +1,6 @@
 <!-- 分页组件 -->
 <div class="mt-8 flex justify-center">
-    <nav class="inline-flex items-center space-x-1">
+    <nav class="inline-flex items-center space-x-1 pb-8">
         {% if page_obj.has_previous %}
             <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700">&laquo; 第一页</a>
             <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">前一页</a>

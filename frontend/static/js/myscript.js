@@ -184,3 +184,79 @@ function openUrl(url) {
     window.open("", '_blank');
     
 }
+
+ // 打开磁链浮窗并显示磁链信息
+
+ // 创建用于展示 magnet 的 li 元素
+function createMagnetListItem(magnet) {
+    const li = document.createElement('li');
+    li.className = 'flex justify-between items-center py-2 text-xs';
+
+    const magnetInfo = document.createElement('span');
+    magnetInfo.textContent = `${magnet.name} - ${magnet.meta} `;
+    li.appendChild(magnetInfo);
+
+    if(`${magnet.tags}`){
+        const magnetTag = document.createElement('span');
+        magnetTag.textContent = `${magnet.tags}`;
+        magnetTag.className = 'bg-green-500 text-white  px-2 py-1 rounded ml-2';
+        li.appendChild(magnetTag);
+    }
+    
+    const magnetTime = document.createElement('span');
+    magnetTime.textContent = `${magnet.time}`;
+    magnetTime.className = 'bg-blue-500 text-white px-2 py-1 rounded ml-2';
+    li.appendChild(magnetTime);
+
+    const downloadButton = document.createElement('button');
+    downloadButton.textContent = '下载';
+    downloadButton.className = 'bg-blue-500 text-white px-2 py-1 rounded ml-2';
+    // magnet:?xt=urn:btih:0121bfbfb9a162ad3aac26f4ff42a71570d1ed6e&=[javdb.com]
+    safe_id = magnet.id.substring(20,60);
+    downloadButton.onclick = () => downloadMagnet(`${safe_id}`);
+    li.appendChild(downloadButton);
+
+    return li;
+}
+
+
+function showMagnets(movieId) {
+    console.log(movieId);
+    fetch(`/movie/magnets/${movieId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const magnetList = document.getElementById('magnetList');
+            magnetList.innerHTML = ''; // 清空之前的内容
+            data.magnets.forEach(magnet => {
+                const li = createMagnetListItem(magnet);
+                magnetList.appendChild(li);
+            });
+            document.getElementById('magnetModal').style.display = "block";
+        });
+}
+
+// 关闭磁链浮窗
+function closeMagnetModal() {
+    document.getElementById('magnetModal').style.display = "none";
+}
+
+function downloadMagnet(magnetID) {
+    console.log(magnetID);
+    fetch(`/movie/download/${magnetID}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ 'id': magnetID })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('已下载', 'bg-green-500');
+                location.reload();
+            } else {
+                showMessage('下载失败', 'bg-red-500');
+            }
+        });
+}

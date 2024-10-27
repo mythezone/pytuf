@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "movie",
     "page",
     "person",
+    'fontawesomefree',
+
 
 ]
 

@@ -7,7 +7,19 @@ from django.views.decorators.csrf import csrf_exempt
 import json 
 import urllib.parse
 import os 
+from tools.qbdown import QBTorrentDownloader
+
 # Create your views here.
+qbt= {
+        "url": "http://10.16.51.226:8080",
+        "username": "mythezone",
+        "password": "19891016Zmy!"
+    }
+
+ALL_MOVIES = Movie.objects.exclude(video_path="")
+QBT = QBTorrentDownloader(qb_url=qbt['url'], username=qbt['username'], password=qbt['password'])
+
+
 def local_video(request):
     local = request.GET.get('local', '1')
     if local == '1':
@@ -21,7 +33,42 @@ def local_video(request):
     page_obj = paginator.get_page(page_num)
 
 
-    return render(request, 'index.html', {"page_obj": page_obj,"total":len(all_movies)})
+    return render(request, 'index.html', {"page_obj": page_obj,"title":"所有电影","total":len(all_movies)})
+
+def random_movies(request):
+    random_movies = ALL_MOVIES.order_by('?')[:12]
+    paginator = Paginator(random_movies, 12)
+    page_num = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_num)
+    return render(request, 'index.html', {"page_obj": page_obj,"random":True,"title":"运气不错",'total':12})
+
+def my_top(request):
+    num = request.GET.get('num', '100')
+    num = int(num)
+    top = ALL_MOVIES.order_by('-my_rate')[:num]
+    paginator = Paginator(top, 12)
+    page_num = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_num)
+    return render(request, 'index.html', {"page_obj": page_obj,"title":"我的最佳", 'total':num})
+
+def viewer_top(request):
+    num = request.GET.get('num', '100')
+    num = int(num)
+    top = ALL_MOVIES.order_by('-rate')[:num]
+    paginator = Paginator(top, 12)
+    page_num = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_num)
+    return render(request, 'index.html', {"page_obj": page_obj,"title":"观众最佳","total":num})
+
+def recent(request):
+    num = request.GET.get('num', '12')
+    num = int(num)
+    recent_movies = ALL_MOVIES.order_by('-release_date')[:num]
+    paginator = Paginator(recent_movies, 12)
+    page_num = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_num)
+    return render(request, 'index.html', {"page_obj": page_obj,"title":"最新发布","total":num})
+    
 
 def all(request):
     all_movies = Movie.objects.all().order_by('-id')
@@ -90,7 +137,9 @@ def del_movie(request, movie_id):
             # 修改文件和目录权限
 
             shutil.rmtree(parent)
-            movie.delete()
+            movie.rate = -1 
+            movie.video_path = ""
+            movie.save()
             return JsonResponse({'success': True})
         except Movie.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Movie not found'})
@@ -134,4 +183,29 @@ def update_comment(request, movie_id):
                 return JsonResponse({'success': False, 'error': 'Invalid comment'})
         except Movie.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Movie not found'})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+def get_magnets(request, movie_id):
+    try:
+        decoded_movie_id = movie_id.replace('_', '/')
+        movie = Movie.objects.get(id=decoded_movie_id)
+        magnets = Magnet.objects.filter(movie=movie)
+        return JsonResponse({'success': True, 'magnets': [{'id':magnet.id,'name': magnet.name, 'meta': magnet.meta, 'tags': magnet.tags, 'time': magnet.time} for magnet in magnets]})
+    except Movie.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Movie not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
+@csrf_exempt
+def download_magnet(request, magnet_id):
+    # magnet:?xt=urn:btih:0121bfbfb9a162ad3aac26f4ff42a71570d1ed6e&=[javdb.com]
+    magnet_id = "magnet:?xt=urn:btih:"+magnet_id+"&=[javdb.com]"
+    print(magnet_id)
+    if request.method == 'POST':
+        try:
+            print(magnet_id)
+            QBT.download(magnet_id, "from_web")
+            return JsonResponse({'success': True})
+        except Magnet.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Magnet not found'})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})

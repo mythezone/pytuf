@@ -53,3 +53,5 @@ def group(request, group_id):
     page_obj = paginator.get_page(page_num)
     return render(request, 'group.html', {"page_obj": page_obj,"title":g_name, "total":total})
     
+    
+    
