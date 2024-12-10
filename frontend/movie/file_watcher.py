@@ -40,5 +40,5 @@ def monitor_directory(path):
         observer.stop()
     observer.join()
     
-if __name__ == "__main__":
-    monitor_directory(r"\\10.16.12.105\disk\G\Info")
+# if __name__ == "__main__":
+#     monitor_directory(r"\\10.16.12.105\disk\G\Info")

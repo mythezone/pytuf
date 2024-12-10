@@ -17,8 +17,8 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from frontend.tools.movie_javdb import get_movie_json_by_url
-from frontend.tools.process_json import process_json
+from tools.movie_javdb import get_movie_json_by_url
+from tools.process_json import process_json
 # from frontend.movie.parser import parse_json
 from utils.logger import setup_logger
 from utils.config import ConfigManager
@@ -38,7 +38,7 @@ class TorrentDownloaderApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Torrent Downloader")
-        self.geometry("400x200")
+        self.geometry("400x400")
 
         self.cm = ConfigManager()
         
@@ -60,6 +60,16 @@ class TorrentDownloaderApp(tk.Tk):
 
         self.view_downloads_button = tk.Button(self, text="View Downloads", command=self.view_downloads)
         self.view_downloads_button.pack(pady=10)
+        
+        self.movie_button = tk.Button(self, text="Start Server", command=self.start_server)
+        self.movie_button.pack(pady=10)
+
+    def start_server(self):
+        def start():
+            os.system(r"C:\Users\mythezone\.conda\envs\web\python.exe manage.py runserver localhost:19880")
+        
+        self.start_server_threading = threading.Thread(target=start)
+        self.start_server_threading.start()
 
     def start_monitoring(self):
         if self.qb_downloader is None:
@@ -67,7 +77,8 @@ class TorrentDownloaderApp(tk.Tk):
         
         if self.qb_downloader.session:
             self.monitoring = True
-            threading.Thread(target=self.monitor_clipboard).start()
+            self.monitor_threading = threading.Thread(target=self.monitor_clipboard)
+            self.monitor_threading.start()
 
     def read_config_and_login(self):
 
@@ -135,7 +146,13 @@ class TorrentDownloaderApp(tk.Tk):
     def on_closing(self):
         if self.monitoring:
             self.monitoring = False
-            self.monitor_thread.join()
+            self.monitor_threading.join()
+        # 结束线程
+        try:
+            self.start_server_threading.join()
+        except:
+            pass
+        
         self.destroy()
 
 

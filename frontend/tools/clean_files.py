@@ -89,9 +89,10 @@ def clean_download_folder(source_folder,target_folder):
     
 
 if __name__ == "__main__":
-    clean_download_folder("/disk/D/Unclassified","/disk/D/Adult")
+    # clean_download_folder("/disk/D/Unclassified","/disk/D/Adult")
     # clean_download_folder(r"\\10.16.51.226\media\16t\downloads",r"\\10.16.51.226\media\16t\Adult_tmp")
     # source_folder = r"\\10.16.51.226\media\16t\downloads"
     # delete_small_files(source_folder)
     
     # delete_empty_folders(source_folder)
+    clean_download_folder(r"\\10.16.51.226\media\16t\downloads",r"\\10.16.51.226\media\16t\Adult_tmp")
