@@ -3,7 +3,7 @@ import requests
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-from frontend.tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url
+from tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url
 
 
 javdb_base = "https://javdb.com"

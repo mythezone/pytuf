@@ -12,9 +12,9 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
     
-from frontend.tools.process_json import process_json
+from tools.process_json import process_json
 
-from frontend.tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url  
+from tools.base import get_response_by_url, sessions, new_session, headers, save_resource_by_url  
 
 def parser_file_name(file_name):
     base_name, ext = os.path.splitext(file_name)
@@ -320,12 +320,16 @@ def parse_relateds(related):
         res['code'] = related.find("div",{"class":"video-number"}).text
         
         return res 
-        
-
-if __name__ == "__main__":
+    
+def multi_thread_pipeline():
+    multi_pipeline(r"\\10.16.12.105\disk\media\16t\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\G\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\D\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\J\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\4t\Adult")
     multi_pipeline(r"\\10.16.12.105\disk\media\4t2\Adult")
-    multi_pipeline(r"\\10.16.12.105\disk\media\16t\Adult")
+    
+        
+
+if __name__ == "__main__":
+    multi_thread_pipeline()

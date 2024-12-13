@@ -31,6 +31,7 @@ import time
 import threading
 import configparser
 from datetime import datetime
+from tools.movie_javdb import multi_thread_pipeline
 
 
 
@@ -44,6 +45,7 @@ class TorrentDownloaderApp(tk.Tk):
         
         self.qb_downloader = None
         self.monitoring = False
+        self.scanning = False 
         
         self.current_label = datetime.now().strftime("%Y-%m-%d")
         self.create_widgets()
@@ -63,6 +65,9 @@ class TorrentDownloaderApp(tk.Tk):
         
         self.movie_button = tk.Button(self, text="Start Server", command=self.start_server)
         self.movie_button.pack(pady=10)
+        
+        self.scan_button = tk.Button(self, text="Scan Folders", command=self.start_scan_folder)
+        self.scan_button.pack(pady=10)
 
     def start_server(self):
         def start():
@@ -79,6 +84,17 @@ class TorrentDownloaderApp(tk.Tk):
             self.monitoring = True
             self.monitor_threading = threading.Thread(target=self.monitor_clipboard)
             self.monitor_threading.start()
+            
+    def start_scan_folder(self):
+        if self.scanning == False:
+            self.scanning = True 
+            self.scan_threading = threading.Thread(target=multi_thread_pipeline)
+            self.scan_threading.start()
+            
+        else:
+            self.scanning = False 
+            self.scan_threading.join()
+        
 
     def read_config_and_login(self):
 
@@ -150,6 +166,10 @@ class TorrentDownloaderApp(tk.Tk):
         # 结束线程
         try:
             self.start_server_threading.join()
+        except:
+            pass
+        try:
+            self.scan_threading.join()
         except:
             pass
         
