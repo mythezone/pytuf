@@ -71,7 +71,7 @@ class TorrentDownloaderApp(tk.Tk):
 
     def start_server(self):
         def start():
-            os.system(r"C:\Users\mythezone\.conda\envs\web\python.exe manage.py runserver localhost:19880")
+            os.system(r"C:\Users\mythezone\.conda\envs\web\python.exe manage.py runserver 192.168.50.116:19880")
         
         self.start_server_threading = threading.Thread(target=start)
         self.start_server_threading.start()
