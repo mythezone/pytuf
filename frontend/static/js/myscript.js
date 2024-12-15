@@ -31,6 +31,20 @@ function markAsDeleted(movieId) {
     });
 }
 
+function unsecuredCopyToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (err) {
+      console.error('Unable to copy to clipboard', err);
+    }
+    document.body.removeChild(textArea);
+}
+
 
 // 复制到剪切板
 function copyToClipboard(text) {
@@ -39,6 +53,7 @@ function copyToClipboard(text) {
     }, function(err) {
         alert('无法复制路径: ', err);
     });
+
 }
 
 // 更新评分
@@ -180,8 +195,9 @@ function delMovie(movie_id) {
 }
 
 function openUrl(url) {
-    copyToClipboard(url);
-    window.open("", '_blank');
+    unsecuredCopyToClipboard(url);
+    // window.open("", '_blank');
+    // console.log(url);
     
 }
 

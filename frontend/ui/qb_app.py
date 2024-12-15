@@ -32,6 +32,7 @@ import threading
 import configparser
 from datetime import datetime
 from tools.movie_javdb import multi_thread_pipeline
+import subprocess
 
 
 
@@ -126,6 +127,10 @@ class TorrentDownloaderApp(tk.Tk):
                     # info = get_movie_json_by_url(url = clipboard_content)
                     
                     # process_json(j = info)
+                elif clipboard_content.endswith('.mp4') or clipboard_content.endswith('.mkv'):
+                    self.label.config(text=clipboard_content)
+                    subprocess.run([r"C:\mythezone\tools\PotPlayer\PotPlayerMini64.exe", clipboard_content])
+                    
             time.sleep(2)
             
     def view_downloads(self):

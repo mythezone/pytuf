@@ -41,6 +41,9 @@
             {% if movie.maker.name %}
             <p class="text-gray-600 text-xs">制作商: <a href="/group/{{movie.maker.id|replace_slash}}?{% for key, value in request.GET.items %}&{{ key }}={{ value }}{% endfor %}">{{ movie.maker.name }}</a></p>
             {% endif %}
+            {% comment %} {% if movie.video_path %}
+            <p class="text-gray-600 text-xs">路径： {{ movie.video_path|escapejs }}" </p>
+            {% endif %} {% endcomment %}
             <div class="mt-1">
                 <h3 class=" text-xs font-semibold text-gray-800">Tags:</h3>
                 <div class="flex flex-wrap">
