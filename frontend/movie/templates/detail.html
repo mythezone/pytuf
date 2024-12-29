@@ -1,53 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Movie</title>
-</head>
-<body>
-    <h1>
-        {{ movie.current_title }}
-    </h1>
+{% extends 'base.html' %}
 
-    <p>
-        {{ movie.video_path }}
-    </p>
-    <img src="{{movie.cover}}" alt="封面">
+{% block title %}My Movie System{% endblock %}
 
-    <ul>
-        {% for m in magnets %}
-            <li>
-                <a href="{{ m.id }}" onclick=to_clipboard()> {{ m.name }} </a>
-            </li>
-        {% endfor %}
-    </ul>
-    <video id="videoPlayer" width="640" height="360" controls>
-        <source src="{{ movie.video_path }}" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+{% block header %}
 
-</body>
-<script>
-    function to_clipboard() {
-        var text = event.target.href;
-        var input = document.createElement('input');
-        input.setAttribute('readonly', 'readonly');
-        input.setAttribute('value', text);
-        document.body.appendChild(input);
-        input.select();
-        if (document.execCommand('copy')) {
-            document.execCommand('copy');
-            console.log('复制成功');
-        }
-        document.body.removeChild(input);
-    }
+{% endblock %}
 
-    function openWithSystemPlayer(videoUrl) {
-        var link = document.createElement('a');
-        link.href = videoUrl;
-        link.target = '_blank';
-        link.click();
-    }
-</script>
-</html>
+{% block content %}
+{% include 'components/movie_detail.html' with movie=movie_obj%}
+{% endblock %}
+

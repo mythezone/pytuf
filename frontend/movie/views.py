@@ -8,6 +8,7 @@ import json
 import urllib.parse
 import os 
 from tools.qbdown import QBTorrentDownloader
+from .templatetags.movie_extras import replace_slash, replace_back_slash, dereplace_slash
 
 # Create your views here.
 qbt= {
@@ -82,14 +83,15 @@ def all(request):
     return render(request, 'index.html', {"page_obj": page_obj})
 
 def detail(request, movie_id):
-    
+    movie_id = dereplace_slash(movie_id)
+    print("movie_id:", movie_id)
     try:
         movie = Movie.objects.get(id=movie_id)
     except:
         movie = None 
         
     if movie :
-        return render(request, 'detail.html', {"movie": movie})
+        return render(request, 'detail.html', {"movie_obj": movie})
     
     else:
         return render(request, '404.html')
