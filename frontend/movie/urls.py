@@ -18,4 +18,5 @@ urlpatterns = [
     path('del_movie/<str:movie_id>/', views.del_movie, name='del_movie'),
     path('magnets/<str:movie_id>/', views.get_magnets, name='magnets'),
     path('download/<str:magnet_id>/', views.download_magnet, name='download'),
+    path('search/', views.search_result, name='search'),
 ]

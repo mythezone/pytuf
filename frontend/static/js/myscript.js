@@ -276,3 +276,4 @@ function downloadMagnet(magnetID) {
             }
         });
 }
+

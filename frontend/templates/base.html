@@ -37,8 +37,13 @@
             <a class="text-white hover:text-blue-300" href="/movie/recent/?num=100">Recent</a>
         </li>
         <li class="mr-6 p-1">
-            <div>
-                <textarea id="search_text" class="w-full p-1 border border-gray-300 rounded text-xs" rows="1"></textarea>
+            <div class="flex items-center">
+                <input id="search_text" class="w-full p-1 border border-gray-300 rounded text-xs" rows="1" placeholder="Search"
+                    value="{{ keyword }}" onkeydown="if(event.keyCode==13) search_text()"
+                ></input>
+                <button class="px-2 mx-2  bg-blue-500 text-white rounded" onclick="search_text()">
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
         </li>
         </ul>
@@ -70,6 +75,13 @@
         </div>
     </div>
     
-
+    <script>
+        function search_text() {
+            var search_text = document.getElementById("search_text").value;
+            if (search_text) {
+                window.location.href = "/movie/search/?keyword=" + search_text;
+            }
+        }
+    </script> 
 </body>
 </html>

@@ -43,6 +43,17 @@ def random_movies(request):
     page_obj = paginator.get_page(page_num)
     return render(request, 'index.html', {"page_obj": page_obj,"random":True,"title":"运气不错",'total':12})
 
+def search_result(request):
+    keyword = request.GET.get('keyword', '')
+    if keyword == '': 
+        return render(request, '404.html')
+    search_movies = ALL_MOVIES.filter(code__icontains=keyword) | ALL_MOVIES.filter(current_title__icontains=keyword) | ALL_MOVIES.filter(origin_title__icontains=keyword) 
+    
+    paginator = Paginator(search_movies, 12)
+    page_num = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_num)
+    return render(request, 'index.html', {"page_obj": page_obj,"title":"搜索结果","total":len(search_movies)})
+
 def my_top(request):
     num = request.GET.get('num', '100')
     num = int(num)
