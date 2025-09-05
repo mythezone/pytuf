@@ -7,5 +7,15 @@
             "name": "pytuf",
             "database": "${workspaceFolder:pytuf}/data/db.sqlite"
         }
-    ]
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/node_modules": true
+    }
 }
