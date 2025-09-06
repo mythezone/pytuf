@@ -87,7 +87,7 @@ def to_path(href: str) -> str | None:
 def main() -> None:
     client = MongoClient(mongo_url)
     db = client[db_name]
-    col = db["movies"]
+    col = db["actors"]
 
     abs_cur = col.find({"href": {"$regex": r"^https?://"}}, {"href": 1})
     total = col.count_documents({"href": {"$regex": r"^https?://"}})
