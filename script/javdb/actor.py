@@ -155,10 +155,12 @@ class ActorScraper(BaseScraper):
             return b_list if isinstance(b_list, list) else a_list
         if not isinstance(b_list, list):
             return a_list
+
         def key_of(x):
             if isinstance(x, dict):
                 return x.get("href") or x.get("id") or repr(sorted(x.items()))
             return x
+
         seen = set()
         out = []
         for src in (a_list, b_list):
@@ -177,7 +179,9 @@ class ActorScraper(BaseScraper):
                 continue
             tv = merged.get(k)
             if isinstance(tv, list) or isinstance(v, list):
-                merged[k] = self._merge_lists(tv if isinstance(tv, list) else [], v if isinstance(v, list) else [])
+                merged[k] = self._merge_lists(
+                    tv if isinstance(tv, list) else [], v if isinstance(v, list) else []
+                )
             elif isinstance(tv, dict) and isinstance(v, dict):
                 mv = dict(tv)
                 for kk, vv in v.items():
@@ -192,7 +196,9 @@ class ActorScraper(BaseScraper):
     def _normalize_href_in_collection(self, collection: str, path: str) -> None:
         col = self.db.db[collection]
         rel = col.find_one({"href": path})
-        abs_doc = col.find_one({"href": {"$regex": f"^https?://[^/]+{re.escape(path)}$"}})
+        abs_doc = col.find_one(
+            {"href": {"$regex": f"^https?://[^/]+{re.escape(path)}$"}}
+        )
         if abs_doc and not rel:
             col.update_one({"_id": abs_doc["_id"]}, {"$set": {"href": path}})
             return
@@ -278,8 +284,16 @@ class ActorScraper(BaseScraper):
                 {"link": self.actor_path},
             ]
         }
-        update_doc = {"$set": {"tags": tags, "movie_list": actor_movie_list, "href": self.actor_path}}
-        res_actor = self.db.db[self.actors_col].update_one(actor_filter, update_doc, upsert=True)
+        update_doc = {
+            "$set": {
+                "tags": tags,
+                "movie_list": actor_movie_list,
+                "href": self.actor_path,
+            }
+        }
+        res_actor = self.db.db[self.actors_col].update_one(
+            actor_filter, update_doc, upsert=True
+        )
         if res_actor.upserted_id:
             print(f"[ActorScraper] 新增演员文档: {self.actor_path}")
 
@@ -369,7 +383,7 @@ if __name__ == "__main__":
             print(f"[ActorScraper] 处理失败: {href} -> {e}")
 
         # 间隔 20s 再处理下一条（显示等待进度条）
-        wait_progress(20, label="cooldown")
+        wait_progress(30, label="cooldown")
 
     # 单次处理测试
     # doc = actors.find_one(
