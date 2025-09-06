@@ -1,87 +1,111 @@
 import requests
-import json
+from typing import Dict, List, Optional
 from pprint import pprint
-import urllib.parse
+from urllib.parse import quote
 
-def get_all_proxy_name(controller_url="http://127.0.0.1:9097", secret=None):
-    endpoint = f"{controller_url}/proxies"
-    headers = {'Content-Type': 'application/json'}
-    
-    proxies = []
 
+def _headers(secret: Optional[str] = None) -> Dict[str, str]:
+    h = {'Content-Type': 'application/json'}
     if secret:
-        headers['Authorization'] = f"Bearer {secret}"
+        h['Authorization'] = f"Bearer {secret}"
+    return h
 
+
+def _get_proxies(controller_url: str = "http://127.0.0.1:9097", secret: Optional[str] = None) -> Dict:
+    resp = requests.get(f"{controller_url.rstrip('/')}/proxies", headers=_headers(secret), timeout=5)
+    resp.raise_for_status()
+    return resp.json() or {}
+
+
+def _pick_selector_group(proxies_json: Dict, preferred: Optional[str] = None) -> Optional[str]:
+    proxies = proxies_json.get('proxies') or {}
+    if preferred and preferred in proxies:
+        return preferred
+    # Common selector group names in Clash/Verge
+    candidates = [
+        'GLOBAL',
+        '♻️ 自动选择', '自动选择',
+        '🔰 节点选择', '🚀 节点选择', '节点选择',
+        'PROXY', 'Proxy', '代理', '手动选择',
+    ]
+    for name in candidates:
+        if name in proxies:
+            return name
+    # Fallback: first selector-like group (has 'all' list)
+    for name, info in proxies.items():
+        if isinstance(info, dict) and isinstance(info.get('all'), list):
+            return name
+    return None
+
+
+def get_all_proxy_name(
+    controller_url: str = "http://127.0.0.1:9097",
+    secret: Optional[str] = None,
+    group_name: Optional[str] = None,
+) -> List[str]:
+    """Return node names from the selected proxy group (selector)."""
     try:
-        response = requests.get(endpoint, headers=headers)
-        response.raise_for_status()
-        proxies_list = response.json()
-        # pprint(proxies)
-        for key,value in proxies_list.items():
-            if key == "proxies":
-                for k,v in value.items():
-                    if "仅海外用户" in k:
-                        continue 
-                    proxies.append(k)
-        return proxies
+        data = _get_proxies(controller_url, secret)
+        proxies = data.get('proxies') or {}
+        group = _pick_selector_group(data, preferred=group_name)
+        if not group:
+            return []
+        info = proxies.get(group) or {}
+        nodes = info.get('all') or []
+        # Filter out special entries if necessary
+        return [n for n in nodes if n and '仅海外用户' not in n]
     except Exception as e:
-        print(f"获取当前代理时出错: {e}")
-        return proxies
+        print(f"获取代理列表出错: {e}")
+        return []
 
-def switch_proxy(proxy_name, base_url=r"http://127.0.0.1:9097/proxies/%F0%9F%9A%80%20%E8%8A%82%E7%82%B9%E9%80%89%E6%8B%A9"):
+
+def switch_proxy(
+    proxy_name: str,
+    *,
+    controller_url: str = "http://127.0.0.1:9097",
+    secret: Optional[str] = None,
+    group_name: Optional[str] = None,
+) -> bool:
+    """Switch Clash selector group to the specified node.
+
+    Tries standard Clash endpoint: PUT /proxies/{group} {"name": proxy_name}
+    Falls back to POST /proxies/{group}/select when required by some builds.
     """
-    切换 Clash Verge 的代理。
-
-    :param proxy_name: 目标代理的名称（包含特殊字符或非ASCII字符时）
-    :param base_url: Clash Verge 的基础URL，默认为本地地址
-    :return: 布尔值，表示切换是否成功
-    """
-    # 对代理名称进行URL编码，以确保特殊字符正确传输
-    encoded_proxy_name = urllib.parse.quote(proxy_name, safe='')
-
-    # 构建完整的URL
-    # url = f"{base_url}/proxies/{encoded_proxy_name}"
-
-    # 设置请求头，如果需要身份验证，可以在这里添加
-    headers = {
-        'Content-Type': 'application/json',
-        # 'Authorization': 'Bearer YOUR_SECRET'  # 如果需要，可以取消注释并设置
-    }
-    payload = {"name": proxy_name}
-    
     try:
-        # 发送PUT请求
-        response = requests.put(base_url, headers=headers,json=payload)
-
-        # 检查响应状态码
-        if response.status_code == 204:
-            print(f"成功切换到代理：{proxy_name}")
-            return True
-        else:
-            print(f"切换代理失败，状态码: {response.status_code}")
-            print(f"响应内容: {response.text}")
+        data = _get_proxies(controller_url, secret)
+        group = _pick_selector_group(data, preferred=group_name)
+        if not group:
+            print("未找到可用的选择器分组 (selector group)")
             return False
-
+        base = controller_url.rstrip('/')
+        h = _headers(secret)
+        # Standard Clash API
+        url_put = f"{base}/proxies/{quote(group, safe='')}"
+        payload = {"name": proxy_name}
+        r = requests.put(url_put, headers=h, json=payload, timeout=5)
+        if r.status_code == 204:
+            print(f"成功切换到代理：{proxy_name} (组: {group})")
+            return True
+        # Fallback endpoint used by some forks
+        url_post = f"{base}/proxies/{quote(group, safe='')}/select"
+        r2 = requests.post(url_post, headers=h, json=payload, timeout=5)
+        if r2.status_code in (200, 204):
+            print(f"成功切换到代理：{proxy_name} (组: {group})")
+            return True
+        print(f"切换代理失败，状态码: {r.status_code}/{r2.status_code}")
+        return False
     except requests.exceptions.RequestException as e:
         print(f"请求过程中出错: {e}")
         return False
 
+
 if __name__ == "__main__":
-    controller = " http://127.0.0.1:9097"
-    secret_key = None # 如果未设置密钥，则设为 None
+    controller = "http://127.0.0.1:9097"
+    secret_key = None  # 如果未设置密钥，则设为 None
+    group = None       # 可指定 group，例如 'GLOBAL' 或 '🔰 节点选择'
 
-    current = get_all_proxy_name(controller_url=controller, secret=secret_key)
-    pprint(current) 
-    
-
-    # # target = "DesiredProxyName"  # 替换为你想切换到的代理名称
-
-    # # if current != target:
-    # #     success = switch_proxy(proxy_name=target, controller_url=controller, secret=secret_key)
-    # #     if success:
-    # #         print(f"已成功从 {current} 切换到 {target}")
-    # #     else:
-    # #         print(f"切换到 {target} 失败")
-    # # else:
-    # #     print(f"当前代理已是 {target}，无需切换")
-    # switch_proxy("(SS)E-IEPL-新加坡1")
+    nodes = get_all_proxy_name(controller_url=controller, secret=secret_key, group_name=group)
+    print("可用节点数:", len(nodes))
+    pprint(nodes[:20])
+    if nodes:
+        switch_proxy(nodes[0], controller_url=controller, secret=secret_key, group_name=group)
