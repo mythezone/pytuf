@@ -14,5 +14,9 @@ const edges = {
 </script>
 
 <template>
-  <v-network-graph :nodes="nodes" :edges="edges" />
+    <div class="basic-example">
+        <h2>Basic Example</h2>
+        <p>This is a basic example of a network graph with 4 nodes and 3 edges.</p>
+        <v-network-graph :nodes="nodes" :edges="edges" />
+    </div>
 </template>

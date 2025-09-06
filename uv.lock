@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 
 [[package]]
@@ -560,6 +560,15 @@ zstd = [
 ]
 
 [[package]]
+name = "opencc-python-reimplemented"
+version = "0.1.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/6d/c6f37eed651dd6b752e50f80a93396cdaa42a6acc6ce05ad7452303ea511/opencc-python-reimplemented-0.1.7.tar.gz", hash = "sha256:4f777ea3461a25257a7b876112cfa90bb6acabc6dfb843bf4d11266e43579dee", size = 482566, upload-time = "2023-02-11T03:58:42.25Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/6b/055b7806f320cc8f2cdf23c5f70221c0dc1683fca9ffaf76dfc2ad4b91b6/opencc_python_reimplemented-0.1.7-py2.py3-none-any.whl", hash = "sha256:41b3b92943c7bed291f448e9c7fad4b577c8c2eae30fcfe5a74edf8818493aa6", size = 481813, upload-time = "2023-02-11T03:58:39.66Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -836,9 +845,11 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "jinja2" },
     { name = "motor", extra = ["aws", "encryption", "gssapi", "ocsp", "snappy", "zstd"] },
+    { name = "opencc-python-reimplemented" },
     { name = "pydantic" },
     { name = "requests" },
     { name = "uvicorn" },
+    { name = "zhconv" },
 ]
 
 [package.metadata]
@@ -848,9 +859,11 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "motor", extras = ["aws", "encryption", "gssapi", "ocsp", "snappy", "srv", "zstd"], specifier = ">=3.7.1" },
+    { name = "opencc-python-reimplemented", specifier = ">=0.1.7" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "uvicorn", specifier = ">=0.35.0" },
+    { name = "zhconv", specifier = ">=1.4.3" },
 ]
 
 [[package]]
@@ -1254,6 +1267,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5f/91/cff6750c7c3b2a9f35e12cd7c4df901251fc3be985edef707a3458c43e9a/winkerberos-0.12.2-cp313-cp313-win32.whl", hash = "sha256:482a72500b7822cc8f941d0c6eed668a24c030ac145c97732e175b51441bebbf", size = 25391, upload-time = "2025-04-02T14:41:43.938Z" },
     { url = "https://files.pythonhosted.org/packages/2a/98/defb037ad127c4006c4e992dd55ce0df92059626d3df5f5f4c5fc8502c26/winkerberos-0.12.2-cp313-cp313-win_amd64.whl", hash = "sha256:efd65ba54534512070916cb9c91ef9798a0f9fb0b04e12732c9631e71553fd69", size = 27704, upload-time = "2025-04-02T14:41:45.203Z" },
 ]
+
+[[package]]
+name = "zhconv"
+version = "1.4.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/47/c8ae2d5d4025e253211ff3d8c163f457db1da94976cb582337a5ab76cb87/zhconv-1.4.3.tar.gz", hash = "sha256:ad42d9057ca0605f8e41d62b67ca797f879f58193ee6840562c51459b2698c45", size = 211571, upload-time = "2021-10-31T05:59:44.096Z" }
 
 [[package]]
 name = "zstandard"

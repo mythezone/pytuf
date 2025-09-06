@@ -9,6 +9,10 @@ import os
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import requests
+from base import BaseScraper, MongoDB
+
+# keep consistent with actor.py
+base_url = "https://javdb561.com"
 
 
 @dataclass
@@ -591,6 +595,9 @@ def parse_file(path: str, *, base_domains: Optional[List[str]] = None) -> Dict[s
     return detail.to_dict()
 
 
+# Note: MovieScraper and execution loop have been moved to script/javdb/movie.py
+
+
 if __name__ == "__main__":
     # Demo: parse local sample.html and pretty-print JSON
     USEFUL_COOKIE_KEYS = [
@@ -638,4 +645,3 @@ if __name__ == "__main__":
         path = args.file or "script/sample.html"
         data = parse_file(path, base_domains=args.base)
     print(json.dumps(data, ensure_ascii=False, indent=2))
-

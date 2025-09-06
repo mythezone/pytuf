@@ -8,7 +8,7 @@ MONGO_URL = os.getenv(
     "MONGO_URL",
     "mongodb://mythezone:19891016Zmy!@10.16.12.105:27017/admin",
 )
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "myj")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "jdb")
 
 
 class Mongo:
@@ -32,4 +32,3 @@ async def disconnect() -> None:
 def get_db() -> AsyncIOMotorDatabase:
     assert Mongo.db is not None, "MongoDB is not connected"
     return Mongo.db
-
