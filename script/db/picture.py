@@ -111,9 +111,24 @@ def _save_image_by_url_path(root: str, url: str, session: Optional[requests.Sess
         return None
 
 
-def _iter_docs(col, query: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
-    # Use a server-side cursor; let caller slice into batches
-    return col.find(query, projection={})
+def _iter_docs(col, query: Dict[str, Any], mongo_session=None):
+    """Return a Mongo cursor with no timeout.
+
+    Downloading images per document can be slow; without disabling the server-\
+    side timeout, MongoDB may kill the cursor and raise CursorNotFound during
+    iteration. Using `no_cursor_timeout=True` keeps the cursor open until we
+    explicitly close it.
+    """
+    if mongo_session is not None:
+        cur = col.find(query, projection={}, no_cursor_timeout=True, session=mongo_session)
+    else:
+        cur = col.find(query, projection={}, no_cursor_timeout=True)
+    try:
+        # A modest batch size helps memory while keeping round-trips lower
+        cur.batch_size(200)
+    except Exception:
+        pass
+    return cur
 
 
 def _extract_urls(doc: Dict[str, Any], field: str) -> Tuple[List[str], bool]:
@@ -163,40 +178,53 @@ def download_images_for_field(
 
     pbar = tqdm(total=total_docs, desc="下载图片", unit="doc", ncols=100)
 
-    cursor = _iter_docs(col, find_query)
+    # Use explicit server session so that server's session idle timeout
+    # does not override no_cursor_timeout (avoids CursorNotFound after ~30min)
+    mongo_session = client.start_session()
+    cursor = _iter_docs(col, find_query, mongo_session)
 
     batch: List[Dict[str, Any]] = []
-    for doc in cursor:
-        batch.append(doc)
-        if len(batch) >= batch_size:
-            _do_batch(
-                batch,
-                col,
-                field,
-                target_root,
-                timeout,
-                naming,
-                href_field,
-                mark_local,
-                stats=(
-                    lambda u, d, e: (
-                        globals().__setitem__("__u", u),
-                        globals().__setitem__("__d", d),
-                        globals().__setitem__("__e", e),
-                    )
-                ),
-            )
-            # stats accumulation via returns
-            u, d, e = __u, __d, __e  # type: ignore # pulled from lambda side-effects
-            updated += u
-            downloaded += d
-            errors += e
-            processed += len(batch)
-            if pbar:
-                pbar.update(len(batch))
-                remaining = (pbar.total - pbar.n) if pbar.total is not None else 0
-                pbar.set_postfix_str(f"剩余:{remaining}")
-            batch = []
+    try:
+        for doc in cursor:
+            batch.append(doc)
+            if len(batch) >= batch_size:
+                _do_batch(
+                    batch,
+                    col,
+                    field,
+                    target_root,
+                    timeout,
+                    naming,
+                    href_field,
+                    mark_local,
+                    stats=(
+                        lambda u, d, e: (
+                            globals().__setitem__("__u", u),
+                            globals().__setitem__("__d", d),
+                            globals().__setitem__("__e", e),
+                        )
+                    ),
+                )
+                # stats accumulation via returns
+                u, d, e = __u, __d, __e  # type: ignore # pulled from lambda side-effects
+                updated += u
+                downloaded += d
+                errors += e
+                processed += len(batch)
+                if pbar:
+                    pbar.update(len(batch))
+                    remaining = (pbar.total - pbar.n) if pbar.total is not None else 0
+                    pbar.set_postfix_str(f"剩余:{remaining}")
+                batch = []
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+        try:
+            mongo_session.end_session()
+        except Exception:
+            pass
 
     if batch:
         _do_batch(
