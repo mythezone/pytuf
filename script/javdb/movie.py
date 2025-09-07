@@ -261,4 +261,4 @@ if __name__ == "__main__":
             )
 
         # cooldown wait with progress bar
-        wait_progress(2, label="cooldown")
+        wait_progress(1, label="cooldown")
