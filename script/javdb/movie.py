@@ -7,7 +7,8 @@ import time as _t
 import re
 
 from base import BaseScraper, MongoDB
-from clawer import parse_video_detail_html, base_url
+from utils.proxy import get_all_proxy_name, switch_proxy
+from utils.clawer import parse_video_detail_html, base_url
 
 
 class MovieScraper(BaseScraper):
@@ -85,7 +86,22 @@ class MovieScraper(BaseScraper):
         # fetch page
         self.init(self.movie_url)
         if not self.soup:
-            return {"ok": False, "error": "fetch_failed"}
+            # rotate proxy nodes and retry a few times on SSL/EOF/network issues
+            attempt = 0
+            nodes = get_all_proxy_name()
+            while attempt < 5 and nodes:
+                node = nodes[attempt % len(nodes)]
+                switch_proxy(node)
+                _t.sleep(1)
+                self.init(self.movie_url)
+                if self.soup:
+                    break
+                attempt += 1
+            if not self.soup:
+                return {
+                    "ok": False,
+                    "error": str(getattr(self, "last_error", "fetch_failed")),
+                }
 
         detail = parse_video_detail_html(str(self.soup)).to_dict()
         # derive tags from categories + magnet tags
@@ -95,7 +111,7 @@ class MovieScraper(BaseScraper):
             name = (c or {}).get("name")
             if name:
                 tags_set.add(name)
-        for m in (detail.get("magnets") or []):
+        for m in detail.get("magnets") or []:
             for t in (m or {}).get("tags", []) or []:
                 if t:
                     tags_set.add(t)
