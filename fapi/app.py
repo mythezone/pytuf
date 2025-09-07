@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from db import connect, disconnect
 from routers import actresses, movies, graph
+from routers import media
 
 
 def create_app() -> FastAPI:
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     app.include_router(actresses.router)
     app.include_router(movies.router)
     app.include_router(graph.router)
+    app.include_router(media.router)
 
     @app.on_event("startup")
     async def _startup():
@@ -36,3 +38,4 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+# MEDIA_ROOT=/Volumes/images/jdb uvicorn app:app --reload --workers 4 --host 0.0.0.0 --port 8000

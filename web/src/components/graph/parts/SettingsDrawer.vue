@@ -1,6 +1,12 @@
 <template>
-  <div class="drawer" :class="{ open }">
-    <div class="handle" @click="open = !open">设置</div>
+  <div
+    class="drawer"
+    :class="{ open: isOpen }"
+    ref="root"
+    tabindex="0"
+    @focusout="onFocusOut"
+    @keydown.esc.prevent="close"
+  >
     <div class="content">
       <h3>显示</h3>
       <label class="row"><input type="checkbox" v-model="showLabels" /> 显示标签</label>
@@ -22,8 +28,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-const open = ref(false)
+import { computed, nextTick, ref, watch } from 'vue'
+
+const props = defineProps<{ open: boolean }>()
+const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (v: boolean) => emit('update:open', v),
+})
+
+const root = ref<HTMLDivElement | null>(null)
+const close = () => { isOpen.value = false }
+
+function onFocusOut(e: FocusEvent) {
+  const next = e.relatedTarget as Node | null
+  if (!root.value) return
+  // If focus moves outside of the drawer, close it
+  if (!next || !root.value.contains(next)) close()
+}
+
+let removeOutsideListener: (() => void) | null = null
+
+watch(() => isOpen.value, async (v) => {
+  if (v) {
+    await nextTick()
+    root.value?.focus()
+    // Close when clicking outside
+    const onDocPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node | null
+      if (!root.value) return
+      if (!t || !root.value.contains(t)) close()
+    }
+    document.addEventListener('pointerdown', onDocPointerDown, true)
+    removeOutsideListener = () => document.removeEventListener('pointerdown', onDocPointerDown, true)
+  } else {
+    if (removeOutsideListener) { removeOutsideListener(); removeOutsideListener = null }
+  }
+})
+
 const showLabels = ref(true)
 const highlightNeighbors = ref(true)
 const nodeSize = ref(10)
@@ -31,12 +74,10 @@ const edgeWidth = ref(2)
 </script>
 
 <style scoped>
-.drawer { position: fixed; right: 0; top: 80px; width: 0; overflow: hidden; transition: width .25s ease; z-index: 30; }
+.drawer { position: fixed; left: 0; top: 80px; width: 0; overflow: hidden; transition: width .25s ease; z-index: 50; outline: none; }
 .drawer.open { width: 280px; }
-.handle { position:absolute; left:-48px; top:0; height:36px; display:grid; place-items:center; padding:0 8px; background:#0e141b; color:#c5d2e0; border:1px solid var(--border); border-right: none; border-radius:8px 0 0 8px; cursor:pointer; }
-.content { height: calc(100vh - 120px); overflow:auto; background:#0e141b; border-left:1px solid var(--border); padding:12px; }
+.content { height: calc(100vh - 120px); overflow:auto; background:#0e141b; border-right:1px solid var(--border); padding:12px; }
 h3 { margin:12px 0 8px; color:#9fb1c7; font-size:12px; }
 .row { display:flex; align-items:center; gap:8px; color:#c5d2e0; font-size:12px; padding:6px 0; }
 input[type=range] { flex:1; }
 </style>
-

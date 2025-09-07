@@ -4,13 +4,8 @@
       <HeaderBar @toggleTheme="isDark = !isDark" />
     </header>
 
-    <aside class="graph-aside">
-      <SidebarFilters />
-      <LegendPanel class="legend" />
-    </aside>
 
     <main class="graph-main">
-      <StatsBar class="stats" :stats="stats" :layout="store.layout" />
       <GraphCanvas class="canvas" />
     </main>
 
@@ -18,28 +13,21 @@
       <DetailsPanel />
     </section>
 
-    <SettingsDrawer />
+    <SidebarFilters />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import HeaderBar from './parts/HeaderBar.vue'
-import SidebarFilters from './parts/SidebarFilters.vue'
 import GraphCanvas from './parts/GraphCanvas.vue'
 import DetailsPanel from './parts/DetailsPanel.vue'
-import LegendPanel from './parts/LegendPanel.vue'
-import StatsBar from './parts/StatsBar.vue'
-import SettingsDrawer from './parts/SettingsDrawer.vue'
+import SidebarFilters from './parts/SidebarFilters.vue'
 import { useGraphStore } from '@/stores/graph'
 
 const isDark = ref(false)
 const store = useGraphStore()
-const stats = computed(() => ({
-  actors: store.nodes.filter(n => n.type === 'actress').length,
-  movies: store.nodes.filter(n => n.type === 'movie').length,
-  edges: store.edges.length,
-}))
+// controls moved into GraphCanvas toolbar
 </script>
 
 <style scoped>
@@ -52,11 +40,11 @@ const stats = computed(() => ({
   --border: #22303f;
 
   display: grid;
-  grid-template-columns: 280px 1fr 360px;
+  grid-template-columns: 1fr 360px;
   grid-template-rows: 64px 1fr;
   grid-template-areas:
-    "header header header"
-    "aside main details";
+    "header header"
+    "main details";
   height: 100vh;
   background: var(--bg);
   color: var(--text);
@@ -64,11 +52,13 @@ const stats = computed(() => ({
 .graph-shell.dark { filter: none; }
 
 .graph-header { grid-area: header; border-bottom: 1px solid var(--border); background: rgba(18,24,32,.7); backdrop-filter: blur(8px); }
-.graph-aside  { grid-area: aside;  border-right: 1px solid var(--border); background: var(--panel); overflow: auto; }
-.graph-main   { grid-area: main;   display: grid; grid-template-rows: auto 1fr; }
-.graph-details{ grid-area: details; border-left: 1px solid var(--border); background: var(--panel); overflow: auto; }
+.graph-main   { grid-area: main; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.graph-details{ grid-area: details; border-left: 1px solid var(--border); background: var(--panel); overflow: hidden; }
 
-.stats { border-bottom: 1px solid var(--border); }
+/* toolbar lives inside GraphCanvas now */
 .legend { margin-top: 12px; }
-.canvas { height: 100%; }
+.canvas { flex:1; min-height:0; }
+.filter-btn { position: fixed; left: 12px; top: 76px; z-index: 40; padding:6px 10px; background:#0e141b; color:#cfe1f0; border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+.settings-btn { position: fixed; left: 12px; top: 116px; z-index: 40; padding:6px 10px; background:#0e141b; color:#cfe1f0; border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+.backdrop { position:fixed; inset:0; background:rgba(0,0,0,.3); z-index: 48; }
 </style>

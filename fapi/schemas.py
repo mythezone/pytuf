@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+from datetime import datetime
 from pydantic import BaseModel, Field
 from bson import ObjectId as _ObjectId
 
@@ -11,7 +12,7 @@ class PyObjectId(_ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, info=None):
         if isinstance(v, _ObjectId):
             return v
         try:
@@ -29,39 +30,97 @@ class MongoModel(BaseModel):
         json_encoders = { _ObjectId: str }
 
 
-# Actress
-class ActressBasic(MongoModel):
-    link: Optional[str] = None
-    japan_name: Optional[str] = None
-    roman_name: Optional[str] = None
-    publisher: Optional[str] = None
-    avatar: Optional[str] = None
-    detail_parsed: Optional[bool] = None
-    movies_count: Optional[int] = None
+# ---------- New Movie/Actor Schemas matching current Mongo ----------
+
+class NameHref(BaseModel):
+    name: Optional[str] = None
+    href: Optional[str] = None
 
 
-class ActressFull(ActressBasic):
-    profile: Optional[Dict[str, Any]] = None
-    movies: Optional[List[Dict[str, Any]]] = None
-    movies_parsed: Optional[bool] = None
-    profile_parsed: Optional[bool] = None
-    avatar_parsed: Optional[bool] = None
+class ActorRef(BaseModel):
+    name: Optional[str] = None
+    href: Optional[str] = None
+    gender: Optional[str] = None
 
 
-# Movie
-class MovieBasic(MongoModel):
+class CategoryRef(BaseModel):
+    name: Optional[str] = None
+    href: Optional[str] = None
+
+
+class RecommendationRef(BaseModel):
+    id: Optional[str] = None
     title: Optional[str] = None
-    description: Optional[str] = None
+    cover: Optional[str] = None
+    href: Optional[str] = None
+
+
+class MovieDoc(MongoModel):
+    href: Optional[str] = None
     code: Optional[str] = None
-    publisher: Optional[str] = None
-    link: Optional[str] = None
-
-
-class MovieFull(MovieBasic):
-    profile: Optional[Dict[str, Any]] = None
+    title: Optional[str] = None
+    cover: Optional[str] = None
+    cover_full: Optional[str] = None
+    publish_date: Optional[str] = None
+    rater: Optional[Union[int, None]] = None
+    rating: Optional[Union[float, None]] = None
+    source: Optional[str] = None
+    tags: Optional[List[str]] = None
+    actors: Optional[List[ActorRef]] = None
+    categories: Optional[List[CategoryRef]] = None
+    detail_parsed: Optional[bool] = None
+    detail_parsed_at: Optional[Union[str, datetime]] = None
+    duration_minutes: Optional[int] = None
+    duration_text: Optional[str] = None
+    magnets: Optional[List[Dict[str, Any]]] = None
+    maker: Optional[NameHref] = None
+    publisher: Optional[NameHref] = None
+    recommendations: Optional[List[RecommendationRef]] = None
+    related_lists: Optional[List[Dict[str, Any]]] = None
+    reviews: Optional[List[Dict[str, Any]]] = None
     screenshots: Optional[List[str]] = None
-    image_parsed: Optional[bool] = None
-    profile_parsed: Optional[bool] = None
+    series: Optional[Any] = None
+
+
+class MovieSummary(MongoModel):
+    href: Optional[str] = None
+    code: Optional[str] = None
+    title: Optional[str] = None
+    cover: Optional[str] = None
+    publish_date: Optional[str] = None
+    rating: Optional[Union[float, None]] = None
+    rater: Optional[Union[int, None]] = None
+    tags: Optional[List[str]] = None
+
+
+class ActorMovieMini(BaseModel):
+    title: Optional[str] = None
+    href: Optional[str] = None
+    cover: Optional[str] = None
+    id: Optional[str] = None
+    mongo_id: Optional[str] = None
+
+
+class ActorDoc(MongoModel):
+    href: Optional[str] = None
+    avatar: Optional[Union[str, bool]] = None
+    name: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
+    last_stats: Optional[Dict[str, Any]] = None
+    movie_list: Optional[List[ActorMovieMini]] = None
+    movie_list_parsed: Optional[bool] = None
+    movie_list_parsed_at: Optional[Union[str, datetime]] = None
+    tags: Optional[List[str]] = None
+
+
+class ActorSummary(MongoModel):
+    href: Optional[str] = None
+    avatar: Optional[Union[str, bool]] = None
+    name: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
+    movies_count: Optional[int] = None
 
 
 # Pagination
@@ -95,4 +154,3 @@ class GraphResult(BaseModel):
     nodes: List[GraphNode]
     edges: List[GraphEdge]
     meta: Dict[str, Any] = {}
-

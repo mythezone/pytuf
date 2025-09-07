@@ -7,7 +7,7 @@ from pymongo import ASCENDING, DESCENDING
 from bson import ObjectId
 
 from db import get_db
-from schemas import MovieBasic, MovieFull, PageMeta, PageResult
+from schemas import MovieSummary, MovieDoc, PageMeta, PageResult
 
 
 router = APIRouter(prefix="/api/movies", tags=["movies"])
@@ -37,30 +37,63 @@ async def list_movies(
             {"code": {"$regex": keyword, "$options": "i"}},
         ]
 
-    total = await db.movie.count_documents(q)
-    cursor = db.movie.find(
-        q,
-        projection={"title": 1, "description": 1, "code": 1, "publisher": 1, "link": 1},
-    )
+    total = await db.movies.count_documents(q)
+    cursor = db.movies.find(q)
     if sort:
         direction = DESCENDING if sort.startswith("-") else ASCENDING
         key = sort[1:] if sort.startswith("-") else sort
         cursor = cursor.sort(key, direction)
     cursor = cursor.skip((page - 1) * page_size).limit(page_size)
     docs = await cursor.to_list(length=page_size)
-    items = [MovieBasic(**d).model_dump(by_alias=True) for d in docs]
+    items = [MovieSummary(**d).model_dump(by_alias=True) for d in docs]
     return PageResult(
         items=items, meta=PageMeta(page=page, page_size=page_size, total=total)
     )
 
 
-@router.get("/{id}", response_model=MovieFull)
+@router.get("/random", response_model=MovieSummary)
+async def random_movie(db: AsyncIOMotorDatabase = Depends(get_db)):
+    """
+    Pick a random movie with a two-pass strategy:
+    1) Prefer parsed or media-present movies
+    2) Fallback to any document having an href
+    """
+    strict_match = {
+        "$and": [
+            {"href": {"$exists": True}},
+            {"$or": [
+                {"detail_parsed": True},
+                {"screenshots.0": {"$exists": True}},
+                {"cover": {"$type": "string", "$ne": ""}},
+            ]},
+        ]
+    }
+    fallback_match = {"href": {"$exists": True}}
+
+    async def _one(match: Dict[str, Any]):
+        cur = db.movies.aggregate([
+            {"$match": match},
+            {"$sample": {"size": 1}},
+            {"$project": {"title": 1, "code": 1, "href": 1, "cover": 1, "publish_date": 1, "rating": 1, "rater": 1, "tags": 1}},
+        ])
+        docs = await cur.to_list(length=1)
+        return docs[0] if docs else None
+
+    doc = await _one(strict_match)
+    if not doc:
+        doc = await _one(fallback_match)
+    if not doc:
+        raise HTTPException(status_code=404, detail="No movie available")
+    return MovieSummary(**doc)
+
+
+@router.get("/{id}", response_model=MovieDoc)
 async def get_movie(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     try:
         oid = ObjectId(id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")
-    doc = await db.movie.find_one({"_id": oid})
+    doc = await db.movies.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Movie not found")
-    return MovieFull(**doc)
+    return MovieDoc(**doc)

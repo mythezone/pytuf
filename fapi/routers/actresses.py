@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING
 
 from db import get_db
-from schemas import ActressBasic, ActressFull, PageMeta, PageResult
+from schemas import ActorSummary, ActorDoc, PageMeta, PageResult
 from bson import ObjectId
 
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/actresses", tags=["actresses"])
 async def list_actresses(
     db: AsyncIOMotorDatabase = Depends(get_db),
     publisher: Optional[str] = Query(None),
-    keyword: Optional[str] = Query(None, description="search in japan_name/roman_name"),
+    keyword: Optional[str] = Query(None, description="search in name/title"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort: Optional[str] = Query("-movies_count"),
@@ -27,23 +27,12 @@ async def list_actresses(
         q["publisher"] = publisher
     if keyword:
         q["$or"] = [
-            {"japan_name": {"$regex": keyword, "$options": "i"}},
-            {"roman_name": {"$regex": keyword, "$options": "i"}},
+            {"name": {"$regex": keyword, "$options": "i"}},
+            {"title": {"$regex": keyword, "$options": "i"}},
         ]
 
-    total = await db.actress.count_documents(q)
-    cursor = db.actress.find(
-        q,
-        projection={
-            "link": 1,
-            "japan_name": 1,
-            "roman_name": 1,
-            "publisher": 1,
-            "avatar": 1,
-            "detail_parsed": 1,
-            "movies": 1,
-        },
-    )
+    total = await db.actors.count_documents(q)
+    cursor = db.actors.find(q)
 
     # sort
     if sort:
@@ -59,9 +48,9 @@ async def list_actresses(
     docs: List[Dict[str, Any]] = await cursor.to_list(length=page_size)
     items: List[Dict[str, Any]] = []
     for d in docs:
-        d["movies_count"] = len(d.get("movies", []))
-        d.pop("movies", None)
-        items.append(ActressBasic(**d).model_dump(by_alias=True))
+        movies = d.get("movie_list")
+        d["movies_count"] = len(movies) if isinstance(movies, list) else 0
+        items.append(ActorSummary(**d).model_dump(by_alias=True))
 
     if sort and (sort.endswith("movies_count") or sort == "movies_count"):
         reverse = sort.startswith("-")
@@ -72,17 +61,32 @@ async def list_actresses(
     )
 
 
-@router.get("/{id}", response_model=ActressFull)
+@router.get("/random", response_model=ActorSummary)
+async def random_actress(db: AsyncIOMotorDatabase = Depends(get_db)):
+    pipeline = [
+        {"$match": {"$and": [
+            {"href": {"$exists": True}},
+            {"movie_list": {"$exists": True, "$ne": []}},
+        ]}},
+        {"$sample": {"size": 1}},
+        {"$project": {"href": 1, "name": 1, "title": 1, "avatar": 1, "category": 1, "movie_list": 1}},
+    ]
+    cur = db.actors.aggregate(pipeline)
+    docs = await cur.to_list(length=1)
+    if not docs:
+        raise HTTPException(status_code=404, detail="No actress available")
+    d = docs[0]
+    d["movies_count"] = len(d.get("movie_list", []))
+    return ActorSummary(**d)
+
+
+@router.get("/{id}", response_model=ActorDoc)
 async def get_actress(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     try:
         oid = ObjectId(id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid id")
-    doc = await db.actress.find_one({"_id": oid})
+    doc = await db.actors.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Actress not found")
-    # normalize
-    if "movies" in doc and isinstance(doc["movies"], list):
-        # clip large arrays for response size if necessary
-        pass
-    return ActressFull(**doc)
+    return ActorDoc(**doc)

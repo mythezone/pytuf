@@ -75,8 +75,8 @@ def switch_proxy(
     proxy_name: str,
     *,
     controller_url: str = "http://127.0.0.1:9097",
-    secret: Optional[str] = None,
-    group_name: Optional[str] = None,
+    secret: Optional[str] = 12345678,
+    group_name: Optional[str] = "GLOBAL",
 ) -> bool:
     """Switch Clash selector group to the specified node.
 

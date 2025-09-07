@@ -54,6 +54,7 @@ class BaseScraper:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
         self.soup: Optional[bs] = None
+        self.last_error: Optional[Exception] = None
 
     def _load_cookie_header(self, cookies_file: str) -> Optional[str]:
         """
@@ -117,12 +118,14 @@ class BaseScraper:
         return cookie
 
     def _get_whole_html(self):
+        self.last_error = None
         try:
             response = self.session.get(self.url, timeout=10)
             response.raise_for_status()
             self.soup = bs(response.text, "html.parser")
             return
         except requests.exceptions.SSLError as e:
+            self.last_error = e
             # Fallback once with verify=False (only if absolutely necessary)
             try:
                 response = self.session.get(self.url, timeout=10, verify=False)
@@ -130,8 +133,10 @@ class BaseScraper:
                 self.soup = bs(response.text, "html.parser")
                 return
             except Exception as e2:
+                self.last_error = e2
                 print(f"SSL error fetching {self.url}: {e}")
         except requests.RequestException as e:
+            self.last_error = e
             print(f"Failed to retrieve page: {self.url} with error: {e}")
         # failure
         self.soup = None

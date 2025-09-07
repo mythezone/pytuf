@@ -12,8 +12,10 @@
         type="search"
         placeholder="搜索演员 / 影片 / 代码"
       />
+      <button class="btn" @click="store.randomMovie()">随机影片</button>
+      <button class="btn" @click="store.randomActress()">随机演员</button>
       <button class="btn" title="切换主题" @click="$emit('toggleTheme')">🌓</button>
-      <button class="btn" title="设置" @click="openSettings = true">⚙️</button>
+      <button class="btn" title="设置" @click="onOpenSettings">⚙️</button>
     </div>
   </div>
 </template>
@@ -23,7 +25,6 @@ import { ref, watch } from 'vue'
 import { useGraphStore } from '@/stores/graph'
 
 const q = ref('')
-const openSettings = ref(false)
 const store = useGraphStore()
 
 let t: number | null = null
@@ -33,6 +34,10 @@ watch(q, (v) => {
     if (v && v.trim().length > 0) store.searchGraph(v.trim())
   }, 400)
 })
+
+function onOpenSettings() {
+  window.dispatchEvent(new CustomEvent('ui:toggle-settings'))
+}
 </script>
 
 <style scoped>
