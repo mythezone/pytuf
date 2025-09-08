@@ -96,4 +96,32 @@ async def get_movie(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     doc = await db.movies.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Movie not found")
+    # Merge screenshots + screenshots2 if present so frontend only reads `screenshots`
+    shots1 = doc.get("screenshots") or []
+    shots2 = doc.get("screenshots2") or []
+    if shots2:
+        # keep order: originals first, then new ones; remove duplicates while preserving order
+        seen = set()
+        merged = []
+        for s in list(shots1) + list(shots2):
+            if isinstance(s, str) and s not in seen:
+                merged.append(s)
+                seen.add(s)
+        doc["screenshots"] = merged
+
+    # Normalize fields that may appear as plain strings in legacy docs
+    def _ensure_namehref(value: Any) -> Any:
+        if isinstance(value, dict) or value is None:
+            return value
+        # If it's a non-empty string, wrap as {name: value}
+        if isinstance(value, str) and value != "":
+            return {"name": value}
+        return None
+
+    if "publisher" in doc:
+        doc["publisher"] = _ensure_namehref(doc.get("publisher"))
+    if "maker" in doc:
+        doc["maker"] = _ensure_namehref(doc.get("maker"))
+    if "director" in doc:
+        doc["director"] = _ensure_namehref(doc.get("director"))
     return MovieDoc(**doc)
