@@ -44,11 +44,18 @@ def src_candidate_paths(src_root: str, h: str, filename: str) -> List[Path]:
     return [base / filename]
 
 
-def dst_rel_path_from_href(href: str, filename: str) -> str:
+def build_store_and_fs_paths(href: str, filename: str) -> Tuple[str, Path]:
+    """Return (store_path, fs_rel_path) for a given movie href + filename.
+
+    - store_path: path to be saved into Mongo, starts with '/samples/...'
+    - fs_rel_path: path used under dst_root directory (no leading slash, and
+      without the 'samples' segment): '<rid[:2].lower()>/<filename>'
+    """
     rid = (href or "").strip("/").split("/")[-1]
-    if not rid:
-        return filename
-    return f"{rid[:2]}/{rid}/{filename}"
+    prefix = rid[:2].lower() if rid else ""
+    store_path = f"/samples/{prefix}/{filename}" if prefix else f"/samples/{filename}"
+    fs_rel = Path(prefix) / filename if prefix else Path(filename)
+    return store_path, fs_rel
 
 
 def process_movies(
@@ -125,16 +132,16 @@ def process_movies(
                         changed = True
                         continue
 
-                    rel_dst = dst_rel_path_from_href(href, filename)
-                    full_dst = Path(dst_root) / rel_dst
+                    store_path, fs_rel = build_store_and_fs_paths(href, filename)
+                    full_dst = Path(dst_root) / fs_rel
                     full_dst.parent.mkdir(parents=True, exist_ok=True)
 
                     try:
                         if not full_dst.exists():
                             shutil.copy2(src_path, full_dst)
                             copied_files += 1
-                        # store with forward slashes
-                        new_items.append(str((Path(rel_dst)).as_posix()))
+                        # store path begins with '/samples/...'
+                        new_items.append(store_path)
                         changed = True
                     except Exception:
                         # copy error: mark as not-exist as well
