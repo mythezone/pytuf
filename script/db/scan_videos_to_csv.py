@@ -141,6 +141,42 @@ def _split_letters_digits(code: str) -> Tuple[str, str]:
     return ("".join(letters), "".join(rest))
 
 
+def _load_existing(outp: Path, headers: list[str]) -> tuple[list[tuple[str, str, str, str, str]], set[tuple[str, str]]]:
+    """Load existing CSV into rows and key set of (root, relpath).
+    Ensures there is a 5th column 'written' in memory even if file lacks it.
+    Returns (rows, key_set).
+    """
+    rows: list[tuple[str, str, str, str, str]] = []
+    key_set: set[tuple[str, str]] = set()
+    if not outp.exists():
+        return rows, key_set
+    try:
+        if pd is not None:
+            df_old = pd.read_csv(outp)
+            for _, r in df_old.iterrows():
+                root_v = str(r.get("root", ""))
+                rel_v = str(r.get("relpath", ""))
+                code_v = "" if (hasattr(pd, 'isna') and pd.isna(r.get("code"))) else str(r.get("code", ""))
+                href_v = "" if (hasattr(pd, 'isna') and pd.isna(r.get("href"))) else str(r.get("href", ""))
+                written_v = "" if (hasattr(pd, 'isna') and pd.isna(r.get("written"))) else str(r.get("written", ""))
+                rows.append((root_v, rel_v, code_v, href_v, written_v))
+                key_set.add((root_v, rel_v))
+        else:
+            with open(outp, "r", newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for r in reader:
+                    root_v = r.get("root", "")
+                    rel_v = r.get("relpath", "")
+                    code_v = r.get("code", "")
+                    href_v = r.get("href", "")
+                    written_v = r.get("written", "") if 'written' in reader.fieldnames else ""
+                    rows.append((root_v, rel_v, code_v, href_v, written_v))
+                    key_set.add((root_v, rel_v))
+    except Exception:
+        rows, key_set = [], set()
+    return rows, key_set
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Scan videos and export CSV with code/href matches"
@@ -186,6 +222,7 @@ def main():
     ap.add_argument("--mongo", default=DEFAULT_MONGO_URL)
     ap.add_argument("--db", default=DEFAULT_DB_NAME)
     ap.add_argument("--min-size", type=float, default=1.0, help="min size GiB")
+    ap.add_argument("--incremental", action="store_true", help="skip files already listed in CSV results")
     args = ap.parse_args()
 
     global SIZE_MIN
@@ -197,7 +234,10 @@ def main():
     outp = Path(args.out)
     outp.parent.mkdir(parents=True, exist_ok=True)
 
-    rows: List[Tuple[str, str, str, str]] = []
+    headers = ["root", "relpath", "code", "href", "written"]
+    # Preload existing for incremental behavior
+    existing_rows, key_set = _load_existing(outp, headers)
+    new_rows: List[Tuple[str, str, str, str, str]] = []
     for root in roots:
         total = count_candidates(root)
         pbar = tqdm(total=total, desc=f"Scanning {root}", unit="file")
@@ -207,47 +247,18 @@ def main():
                 rel = abspath.relative_to(root).as_posix()
             except Exception:
                 rel = abspath.as_posix()
+            if args.incremental and (root.as_posix(), rel) in key_set:
+                pbar.update(1)
+                continue
             code = detect_code_from_filename(abspath) or ""
             href = mongo_find_href_by_code(client, args.db, code) if code else None
-            rows.append((root.as_posix(), rel, code, href or ""))
+            new_rows.append((root.as_posix(), rel, code, href or "", ""))
             processed += 1
             pbar.update(1)
         pbar.close()
-
-    headers = ["root", "relpath", "code", "href"]
-
-    # Load existing CSV (if any) to avoid duplicates by (root, relpath)
-    existing_rows: list[tuple[str, str, str, str]] = []
-    key_set: set[tuple[str, str]] = set()
-    if outp.exists():
-        try:
-            if pd is not None:
-                df_old = pd.read_csv(outp)
-                for _, r in df_old.iterrows():
-                    root_v = str(r.get("root", ""))
-                    rel_v = str(r.get("relpath", ""))
-                    code_v = str(r.get("code", "")) if not pd.isna(r.get("code")) else ""
-                    href_v = str(r.get("href", "")) if not pd.isna(r.get("href")) else ""
-                    existing_rows.append((root_v, rel_v, code_v, href_v))
-                    key_set.add((root_v, rel_v))
-            else:
-                with open(outp, "r", newline="", encoding="utf-8") as f:
-                    reader = csv.DictReader(f)
-                    for r in reader:
-                        root_v = r.get("root", "")
-                        rel_v = r.get("relpath", "")
-                        code_v = r.get("code", "")
-                        href_v = r.get("href", "")
-                        existing_rows.append((root_v, rel_v, code_v, href_v))
-                        key_set.add((root_v, rel_v))
-        except Exception:
-            # If file unreadable, ignore previous contents
-            existing_rows = []
-            key_set = set()
-
     # Merge new rows, de-duplicated by (root, relpath)
     added = 0
-    for row in rows:
+    for row in new_rows:
         key = (row[0], row[1])
         if key not in key_set:
             existing_rows.append(row)
@@ -266,7 +277,7 @@ def main():
             w.writerow(headers)
             w.writerows(existing_rows)
 
-    print(f"Done. Scanned {len(rows)} files; added {added} new rows. CSV written to {outp}")
+    print(f"Done. Added {added} new rows. CSV written to {outp}")
 
 
 if __name__ == "__main__":
