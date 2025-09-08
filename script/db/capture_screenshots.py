@@ -144,6 +144,14 @@ def process_movie_doc(
                 progress(1)
             except Exception:
                 pass
+    if not saved:
+        return {
+            "href": href,
+            "paths": [],
+            "ok": False,
+            "reason": "ffmpeg_failed",
+            "total": len(secs),
+        }
     return {"href": href, "paths": saved, "ok": True, "total": len(secs)}
 
 
@@ -174,28 +182,41 @@ def main():
     col = client[args.db]["movies"]
     dst_root = Path(args.dst_root)
 
-    def update_doc(href: str, paths: List[str]):
-        if not paths:
-            return
-        # merge unique with any existing screenshot3
-        doc = col.find_one({"href": href}, projection={"screenshot3": 1}) or {}
-        cur = list(doc.get("screenshot3") or [])
-        seen = set(cur)
-        merged = cur[:]
-        for p in paths:
-            if p not in seen:
-                merged.append(p)
-                seen.add(p)
-        col.update_one(
-            {"href": href},
-            {
-                "$set": {
-                    "screenshot3": merged,
-                    "status.screenshot3_done": True,
-                    "status.screenshot3_at": dt.datetime.now(dt.UTC),
-                }
-            },
-        )
+    def update_doc(
+        href: str, paths: List[str], *, ok: bool, reason: Optional[str] = None
+    ):
+        if ok:
+            # merge unique with any existing screenshot3
+            doc = col.find_one({"href": href}, projection={"screenshot3": 1}) or {}
+            cur = list(doc.get("screenshot3") or [])
+            seen = set(cur)
+            merged = cur[:]
+            for p in paths:
+                if p not in seen:
+                    merged.append(p)
+                    seen.add(p)
+            col.update_one(
+                {"href": href},
+                {
+                    "$set": {
+                        "screenshot3": merged,
+                        "status.screenshot3_done": True,
+                        "status.screenshot3_at": dt.datetime.now(dt.UTC),
+                    },
+                    "$unset": {"status.screenshot3_error": ""},
+                },
+            )
+        else:
+            col.update_one(
+                {"href": href},
+                {
+                    "$set": {
+                        "status.screenshot3_done": False,
+                        "status.screenshot3_error": reason or "unknown",
+                        "status.screenshot3_at": dt.datetime.utcnow(),
+                    }
+                },
+            )
 
     if args.href and not args.batch:
         doc = col.find_one({"href": args.href})
@@ -206,10 +227,15 @@ def main():
             print("already done; use --force to redo")
             return
         # per-movie progress bar
-        v = (doc.get("video") or {})
-        duration = v.get("duration_seconds") or run_ffprobe_duration(args.ffprobe, (v.get("abs_path") or ""))
-        secs_preview = times_from_duration(args.start, args.interval, duration, args.max_frames)
+        v = doc.get("video") or {}
+        duration = v.get("duration_seconds") or run_ffprobe_duration(
+            args.ffprobe, (v.get("abs_path") or "")
+        )
+        secs_preview = times_from_duration(
+            args.start, args.interval, duration, args.max_frames
+        )
         from tqdm import tqdm as _tqdm
+
         pbar = _tqdm(total=len(secs_preview), desc=f"1/1", unit="frame")
         pbar.set_postfix_str(str(doc.get("href")))
         res = process_movie_doc(
@@ -223,8 +249,16 @@ def main():
             progress=pbar.update,
         )
         pbar.close()
-        update_doc(res.get("href", ""), res.get("paths", []))
-        print(f"Done {res.get('href')}: {len(res.get('paths', []))} shots")
+        update_doc(
+            res.get("href", ""),
+            res.get("paths", []),
+            ok=res.get("ok", False),
+            reason=res.get("reason"),
+        )
+        if res.get("ok"):
+            print(f"Done {res.get('href')}: {len(res.get('paths', []))} shots")
+        else:
+            print(f"Skip {res.get('href')}: {res.get('reason')}")
         return
 
     # batch
@@ -256,22 +290,28 @@ def main():
             )
             for d in docs
         ]
-        pbar = tqdm(total=total_tasks, desc=f"剩余 {total_tasks}/{total_tasks}", unit="mv")
+        pbar = tqdm(
+            total=total_tasks, desc=f"剩余 {total_tasks}/{total_tasks}", unit="mv"
+        )
         for f in as_completed(futs):
             try:
                 r = f.result()
+                # immediate DB update per movie
+                update_doc(
+                    r.get("href", ""),
+                    r.get("paths", []),
+                    ok=r.get("ok", False),
+                    reason=r.get("reason"),
+                )
                 results.append(r)
                 done += 1
                 pbar.update(1)
                 href_disp = str(r.get("href", ""))
-                pbar.set_description_str(f"剩余 {total_tasks-done}/{total_tasks}")
-                pbar.set_postfix_str(href_disp)
+                pbar.set_description(f"剩余 {total_tasks-done}/{total_tasks}")
+                pbar.set_postfix({"href": href_disp})
             except Exception:
                 pass
         pbar.close()
-
-    for r in results:
-        update_doc(r.get("href", ""), r.get("paths", []))
     print(f"Batch done: {len(results)} movies")
 
 
