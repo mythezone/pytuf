@@ -1,3 +1,4 @@
+<!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <div class="graph-canvas">
     <div class="toolbar">
@@ -146,16 +147,48 @@ const configs = reactive(
       normal: {
         type: (n:any) => (n?.type === 'actress' ? 'circle' : 'rect'),
         radius: (n:any) => (n?.type === 'actress' ? 24 : 0),
-        width: (n:any) => (n?.type === 'movie' ? 40 : 0),
-        height: (n:any) => (n?.type === 'movie' ? 40 : 0),
+        width: (n:any) => {
+          if (n?.type === 'movie') {
+            return n?.data?.video ? 56 : 40
+          }
+          return 0
+        },
+        height: (n:any) => {
+          if (n?.type === 'movie') {
+            return n?.data?.video ? 56 : 40
+          }
+          return 0
+        },
         borderRadius: 8,
-        color: (n:any) => (n?.type === 'actress' ? '#ff9acb' : '#7bb6ff'),
+        color: (n:any) => {
+          if (n?.type === 'actress') return '#ff9acb'
+          if (n?.type === 'movie') {
+            return n?.data?.video ? '#4ade80' : '#7bb6ff' // 绿色: #4ade80
+          }
+          return '#7bb6ff'
+        },
       },
       hover: {
         radius: (n:any) => (n?.type === 'actress' ? 26 : 0),
-        width: (n:any) => (n?.type === 'movie' ? 44 : 0),
-        height: (n:any) => (n?.type === 'movie' ? 44 : 0),
-        color: (n:any) => (n?.type === 'actress' ? '#ff7ab9' : '#5aa3ff'),
+        width: (n:any) => {
+          if (n?.type === 'movie') {
+            return n?.data?.video ? 62 : 44
+          }
+          return 0
+        },
+        height: (n:any) => {
+          if (n?.type === 'movie') {
+            return n?.data?.video ? 62 : 44
+          }
+          return 0
+        },
+        color: (n:any) => {
+          if (n?.type === 'actress') return '#ff7ab9'
+          if (n?.type === 'movie') {
+            return n?.data?.video ? '#22c55e' : '#5aa3ff' // 深绿色: #22c55e
+          }
+          return '#5aa3ff'
+        },
       },
       label: { visible: false },
       focusring: { color: '#cccccc' },

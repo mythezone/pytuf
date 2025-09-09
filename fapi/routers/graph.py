@@ -33,16 +33,20 @@ def mk_actor_node(doc: Dict[str, Any]) -> GraphNode:
 
 def mk_movie_node(doc: Dict[str, Any]) -> GraphNode:
     label = doc.get("code") or (doc.get("title") or "Movie")
+    data = {
+        "title": doc.get("title"),
+        "code": doc.get("code"),
+        "cover": doc.get("cover"),
+        "href": doc.get("href"),
+    }
+    # 如果有本地视频，带上 video 字段
+    if doc.get("video"):
+        data["video"] = True
     return GraphNode(
         id=node_id("m", doc["_id"]),
         type="movie",
         label=label,
-        data={
-            "title": doc.get("title"),
-            "code": doc.get("code"),
-            "cover": doc.get("cover"),
-            "href": doc.get("href"),
-        },
+        data=data,
     )
 
 
@@ -134,7 +138,13 @@ async def graph_by_movie(
             an = mk_actor_node(ad)
             actress_nodes[str(ad["_id"])] = an
             nodes.append(an)
-            edges.append(GraphEdge(id=f"e:{ad['_id']}:{movie['_id']}", source=an.id, target=node_id("m", movie["_id"])) )
+            edges.append(
+                GraphEdge(
+                    id=f"e:{ad['_id']}:{movie['_id']}",
+                    source=an.id,
+                    target=node_id("m", movie["_id"]),
+                )
+            )
 
     return GraphResult(
         nodes=nodes,
@@ -154,7 +164,12 @@ async def graph_search(
 
     # actresses
     ac = db.actors.find(
-        {"$or": [{"name": {"$regex": keyword, "$options": "i"}}, {"title": {"$regex": keyword, "$options": "i"}}]},
+        {
+            "$or": [
+                {"name": {"$regex": keyword, "$options": "i"}},
+                {"title": {"$regex": keyword, "$options": "i"}},
+            ]
+        },
         projection={"name": 1, "title": 1, "avatar": 1, "category": 1, "href": 1},
     )
     actresses = await ac.to_list(length=limit)
