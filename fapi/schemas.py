@@ -55,6 +55,19 @@ class RecommendationRef(BaseModel):
     href: Optional[str] = None
 
 
+class VideoInfo(BaseModel):
+    root: Optional[str] = None
+    path: Optional[str] = None
+    abs_path: Optional[str] = None
+    size_bytes: Optional[int] = None
+    duration_seconds: Optional[Union[float, None]] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    bitrate: Optional[int] = None
+    video_codec: Optional[str] = None
+    audio_codec: Optional[str] = None
+
+
 class MovieDoc(MongoModel):
     href: Optional[str] = None
     code: Optional[str] = None
@@ -79,6 +92,7 @@ class MovieDoc(MongoModel):
     related_lists: Optional[List[Dict[str, Any]]] = None
     reviews: Optional[List[Dict[str, Any]]] = None
     screenshots: Optional[List[str]] = None
+    video: Optional[VideoInfo] = None
     series: Optional[Any] = None
 
 

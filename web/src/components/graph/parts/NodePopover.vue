@@ -25,7 +25,7 @@ const actorCard = computed(() => {
   const n = props.node
   if (!n || n.type !== 'actress') return undefined
   let avatar = n.data?.avatar as any
-  if (avatar === 'local' && n.data?.href) avatar = `http://127.0.0.1:8000/media${n.data.href}.jpg`
+  if (avatar === 'local' && n.data?.href) avatar = `http://10.16.100.180:8000/media${n.data.href}.jpg`
   else avatar = store.resolveImg(avatar)
   return {
     name: n.label,

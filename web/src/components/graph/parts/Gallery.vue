@@ -21,7 +21,7 @@ const overlay = ref<HTMLDivElement|null>(null)
 function resolve(src?: string) {
   if (!src) return ''
   if (src.startsWith('http')) return src
-  if (src.startsWith('/')) return `http://127.0.0.1:8000/media${src}`
+  if (src.startsWith('/')) return `http://10.16.100.180:8000/media${src}`
   return src
 }
 function openAt(i:number){ index.value = i; open.value = true }

@@ -32,7 +32,7 @@ export const useGraphStore = defineStore('graph', {
     resolveImg(src?: string): string | undefined {
       if (!src || typeof src !== 'string') return undefined
       if (src.startsWith('http')) return src
-      if (src.startsWith('/')) return `http://127.0.0.1:8000/media${src}`
+      if (src.startsWith('/')) return `http://10.16.100.180:8000/media${src}`
       return src
     },
     reset() {

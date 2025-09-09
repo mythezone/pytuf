@@ -35,7 +35,7 @@ const props = defineProps<{ actor?: { name?: string; title?: string; avatar?: st
 const variant = computed(()=> props.variant ?? 'detailed')
 const img = computed(() => {
   if (!props.actor) return undefined
-  if (props.actor.avatar === 'local' && props.actor.href) return `http://127.0.0.1:8000/media${props.actor.href}.jpg`
+  if (props.actor.avatar === 'local' && props.actor.href) return `http://10.16.100.180:8000/media${props.actor.href}.jpg`
   return typeof props.actor.avatar === 'string' ? props.actor.avatar : undefined
 })
 const tags = computed(()=> props.actor?.tags || [])

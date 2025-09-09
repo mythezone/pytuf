@@ -96,14 +96,15 @@ async def get_movie(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     doc = await db.movies.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Movie not found")
-    # Merge screenshots + screenshots2 if present so frontend only reads `screenshots`
-    shots1 = doc.get("screenshots") or []
-    shots2 = doc.get("screenshots2") or []
-    if shots2:
+    # Merge screenshots + screenshots2 + screenshot3 if present so frontend only reads `screenshots`
+    shots1 = list(doc.get("screenshots") or [])
+    shots2 = list(doc.get("screenshots2") or [])
+    shots3 = list(doc.get("screenshot3") or [])
+    if shots2 or shots3:
         # keep order: originals first, then new ones; remove duplicates while preserving order
         seen = set()
         merged = []
-        for s in list(shots1) + list(shots2):
+        for s in shots1 + shots2 + shots3:
             if isinstance(s, str) and s not in seen:
                 merged.append(s)
                 seen.add(s)

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db import connect, disconnect
 from routers import actresses, movies, graph
 from routers import media
+from routers import video
 
 
 def create_app() -> FastAPI:
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(movies.router)
     app.include_router(graph.router)
     app.include_router(media.router)
+    app.include_router(video.router)
 
     @app.on_event("startup")
     async def _startup():

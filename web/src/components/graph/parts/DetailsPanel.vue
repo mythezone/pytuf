@@ -14,7 +14,7 @@
             <ActorCard :actor="actorInfo" />
           </div>
           <div v-else>
-            <MovieCard :movie="movieInfo" :screenshots="movieShots" :magnets="movieMagnets" />
+            <MovieCard :movie="movieInfo" :screenshots="movieShots" :magnets="movieMagnets" :playCode="moviePlayCode" />
           </div>
         </div>
         <div v-else class="empty">选择节点以查看详情</div>
@@ -64,7 +64,7 @@ const actorInfo = computed(() => {
   if (!n || n.type !== 'actress') return null
   // avatar 'local' => href + .jpg
   let avatar = n?.data?.avatar
-  if (avatar === 'local' && n?.data?.href) avatar = `http://127.0.0.1:8000/media${n.data.href}.jpg`
+  if (avatar === 'local' && n?.data?.href) avatar = `http://10.16.100.180:8000/media${n.data.href}.jpg`
   // movies_count: count neighbor movies
   const moviesCount = Object.values(store.edgeMap)
     .filter(e => e.source === n.id || e.target === n.id)
@@ -91,6 +91,10 @@ const movieInfo = computed(() => {
     publisher: d?.publisher?.name,
     series: d?.series,
   }
+})
+const moviePlayCode = computed(() => {
+  const d:any = store.detailMovie
+  return d?.video ? d?.code : undefined
 })
 const movieShots = computed(() => store.detailMovie?.screenshots?.map((s:string)=>store.resolveImg(s)) || [])
 const movieMagnets = computed(() => store.detailMovie?.magnets || [])
@@ -133,7 +137,7 @@ const relatedMovies = computed(() => {
 })
 const allActors = computed(() => Object.values(store.nodeMap)
   .filter(n => n.type==='actress')
-  .map(n => ({ id:n.id, name:n.label, avatar: (n.data?.avatar==='local' && n.data?.href) ? `http://127.0.0.1:8000/media${n.data.href}.jpg` : store.resolveImg(n.data?.avatar) })))
+  .map(n => ({ id:n.id, name:n.label, avatar: (n.data?.avatar==='local' && n.data?.href) ? `http://10.16.100.180:8000/media${n.data.href}.jpg` : store.resolveImg(n.data?.avatar) })))
 const allMovies = computed(() => Object.values(store.nodeMap)
   .filter(n => n.type==='movie')
   .map(n => ({ id:n.id, title:n.data?.title, code:n.data?.code, publish_date: n.data?.publish_date, cover: store.resolveImg(n.data?.cover) })))
