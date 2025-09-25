@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json 
 import urllib.parse
 import os 
-from tools.qbdown import QBTorrentDownloader
+from movie.qbdown import QBTorrentDownloader
 from .templatetags.movie_extras import replace_slash, replace_back_slash, dereplace_slash
 
 # Create your views here.

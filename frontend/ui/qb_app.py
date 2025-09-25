@@ -20,7 +20,6 @@ if project_root not in sys.path:
 from tools.movie_javdb import get_movie_json_by_url
 from tools.process_json import process_json
 # from frontend.movie.parser import parse_json
-from utils.logger import setup_logger
 from utils.config import ConfigManager
 from movie.qbdown import QBTorrentDownloader
 import tkinter as tk
@@ -58,7 +57,7 @@ class TorrentDownloaderApp(tk.Tk):
         self.label = tk.Label(self, text="Clipboard content will appear here", wraplength=380)
         self.label.pack(pady=10)
 
-        self.start_button = tk.Button(self, text="Start Monitoring", command=self.start_monitoring)
+        self.start_button = tk.Button(self, text="开始监控", command=self.start_monitoring)
         self.start_button.pack(pady=10)
 
         self.view_downloads_button = tk.Button(self, text="View Downloads", command=self.view_downloads)
@@ -78,13 +77,34 @@ class TorrentDownloaderApp(tk.Tk):
         self.start_server_threading.start()
 
     def start_monitoring(self):
+        """开始监控剪贴板"""
         if self.qb_downloader is None:
-            self.read_config_and_login()
+            if not self.read_config_and_login():
+                return  # 连接失败，不启动监控
         
-        if self.qb_downloader.session:
+        # if self.qb_downloader and self.qb_downloader.session:
+        if not self.monitoring:
             self.monitoring = True
             self.monitor_threading = threading.Thread(target=self.monitor_clipboard)
+            self.monitor_threading.daemon = True  # 设置为守护线程
             self.monitor_threading.start()
+            self.start_button.config(text="停止监控", command=self.stop_monitoring)
+            print("监控已启动", "剪贴板监控已启动！")
+        else:
+           print("提示", "监控已在运行中")
+        # else:
+        #     messagebox.showerror("错误", "无法连接到 qBittorrent，监控未启动")
+            
+    def stop_monitoring(self):
+        """停止监控剪贴板"""
+        if self.monitoring:
+            self.monitoring = False
+            if hasattr(self, 'monitor_threading') and self.monitor_threading.is_alive():
+                self.monitor_threading.join(timeout=1)  # 等待线程结束，最多1秒
+            self.start_button.config(text="开始监控", command=self.start_monitoring)
+            messagebox.showinfo("监控已停止", "剪贴板监控已停止！")
+        else:
+            messagebox.showinfo("提示", "监控未在运行")
             
     def start_scan_folder(self):
         if self.scanning == False:
@@ -98,14 +118,43 @@ class TorrentDownloaderApp(tk.Tk):
         
 
     def read_config_and_login(self):
+        """读取配置并登录到 qBittorrent"""
+        try:
+            qb_url = self.cm.servers.url
+            username = self.cm.servers.username
+            password = self.cm.servers.password
 
-        qb_url = self.cm.servers.url
-        username = self.cm.servers.username
-        password = self.cm.servers.password
-
-        self.qb_downloader = QBTorrentDownloader(qb_url, username, password)
-        if not self.qb_downloader.session:
-            messagebox.showerror("Login Failed", "Could not log in to qBittorrent. Check your credentials.")
+            print(f"正在连接到 qBittorrent: {qb_url}")
+            print(f"用户名: {username}")
+            print(f"密码长度: {len(password)}")
+            self.qb_downloader = QBTorrentDownloader(qb_url, username, password)
+            
+            if not self.qb_downloader.session:
+                error_msg = ("无法连接到 qBittorrent！\n\n"
+                           "请检查以下项目：\n"
+                           "1. qBittorrent 是否正在运行\n"
+                           "2. Web UI 是否已启用\n"
+                           "   (工具 -> 选项 -> Web UI -> 启用 Web 用户界面)\n"
+                           "3. URL 和端口是否正确\n"
+                           f"   当前配置: {qb_url}\n"
+                           "4. 用户名和密码是否正确\n\n"
+                           "如果 qBittorrent 正在运行但仍然连接失败，\n"
+                           "请尝试重启 qBittorrent 应用程序。")
+                messagebox.showerror("连接失败", error_msg)
+                return False
+            else:
+                # 测试连接
+                if self.qb_downloader.is_connected():
+                    messagebox.showinfo("连接成功", "已成功连接到 qBittorrent!")
+                    return True
+                else:
+                    messagebox.showerror("连接测试失败", "登录成功但连接测试失败，请检查 qBittorrent 状态。")
+                    return False
+                    
+        except Exception as e:
+            error_msg = f"读取配置或连接时发生错误：\n{str(e)}"
+            messagebox.showerror("配置错误", error_msg)
+            return False
             
     def get_movie_info_by(self,url):
         info = get_movie_json_by_url(url = url)
@@ -134,53 +183,80 @@ class TorrentDownloaderApp(tk.Tk):
             time.sleep(2)
             
     def view_downloads(self):
+        """查看下载列表"""
         if self.qb_downloader is None:
-            messagebox.showerror("Error", "You must start monitoring first.")
+            if not self.read_config_and_login():
+                return
+                
+        if not self.qb_downloader or not self.qb_downloader.session:
+            messagebox.showerror("错误", "必须先连接到 qBittorrent")
             return
 
-        torrents = self.qb_downloader.get_torrents_by_label(self.current_label)
-        if not torrents:
-            messagebox.showinfo("No Downloads", "No downloads to display.")
-            return
+        try:
+            torrents = self.qb_downloader.get_torrents_by_label(self.current_label)
+            if not torrents:
+                messagebox.showinfo("无下载", f"标签 '{self.current_label}' 下没有下载任务")
+                return
 
-        view_window = tk.Toplevel(self)
-        view_window.title("Current Downloads")
-        view_window.geometry("600x400")
+            view_window = tk.Toplevel(self)
+            view_window.title("当前下载")
+            view_window.geometry("800x400")
 
-        columns = ("Name", "Size", "Progress", "State")
-        tree = ttk.Treeview(view_window, columns=columns, show="headings")
-        tree.heading("Name", text="Name")
-        tree.heading("Size", text="Size")
-        tree.heading("Progress", text="Progress")
-        tree.heading("State", text="State")
+            columns = ("Name", "Size", "Progress", "State")
+            tree = ttk.Treeview(view_window, columns=columns, show="headings")
+            tree.heading("Name", text="名称")
+            tree.heading("Size", text="大小")
+            tree.heading("Progress", text="进度")
+            tree.heading("State", text="状态")
 
-        for torrent in torrents:
-            tree.insert("", "end", values=(
-                torrent['name'],
-                f"{torrent['total_size'] / (1024 * 1024):.2f} MB",
-                f"{torrent['progress'] * 100:.2f} %",
-                torrent['state']
-            ))
+            # 设置列宽
+            tree.column("Name", width=400)
+            tree.column("Size", width=100)
+            tree.column("Progress", width=100)
+            tree.column("State", width=100)
 
-        tree.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+            for torrent in torrents:
+                size_mb = torrent.get('total_size', 0) / (1024 * 1024)
+                progress = torrent.get('progress', 0) * 100
+                tree.insert("", "end", values=(
+                    torrent.get('name', 'N/A'),
+                    f"{size_mb:.2f} MB",
+                    f"{progress:.2f}%",
+                    torrent.get('state', 'N/A')
+                ))
+
+            tree.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+            
+        except Exception as e:
+            messagebox.showerror("错误", f"获取下载列表时发生错误：\n{str(e)}")
         
     def on_closing(self):
-        if self.monitoring:
-            self.monitoring = False
-            self.monitor_threading.join()
-        # 结束线程
+        """关闭应用程序时的清理工作"""
         try:
-            self.start_server_threading.join()
-        except:
-            pass
-        try:
-            self.scan_threading.join()
-        except:
-            pass
-        
-        self.destroy()
+            # 停止监控
+            if self.monitoring:
+                self.monitoring = False
+                if hasattr(self, 'monitor_threading') and self.monitor_threading.is_alive():
+                    self.monitor_threading.join(timeout=2)
+            
+            # 停止扫描
+            if self.scanning:
+                self.scanning = False
+                if hasattr(self, 'scan_threading') and self.scan_threading.is_alive():
+                    self.scan_threading.join(timeout=2)
+            
+            # 停止服务器
+            if hasattr(self, 'start_server_threading') and self.start_server_threading.is_alive():
+                # 注意：服务器线程可能需要手动停止
+                pass
+                
+        except Exception as e:
+            print(f"关闭应用程序时发生错误: {e}")
+        finally:
+            self.destroy()
 
 
 if __name__ == "__main__":
     app = TorrentDownloaderApp()
+    app.protocol("WM_DELETE_WINDOW", app.on_closing)  # 绑定关闭事件
     app.mainloop()
